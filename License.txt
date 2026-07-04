@@ -1,0 +1,34 @@
+SOFTWARE LICENSE & TERMS OF USE AGREEMENT
+
+Project Name: Boards | Online Brainstorming Program
+File Reference: Boards.html
+Licensor: Abolfazl Fazeli
+
+1. NATURE OF THE SOFTWARE
+This Software, “Boards.html”, is a proprietary, single-file web application designed for brainstorming and data visualization. It incorporates unique UI/UX logic, custom SVG connection algorithms, and a specific local data management architecture. The Licensee acknowledges that the Software is a “Computer Work” protected under the “Law for the Protection of Rights of Computer Software Creators” (Iran, 2000).
+
+2. GRANT OF USE (NOT OWNERSHIP)
+The Licensor grants you a non-exclusive, non-transferable right to use the Software. This license does not grant you ownership of the source code, the logic of the “Online Brainstorming Program,” or any styling/assets contained within Boards.html. All rights not expressly granted to you are reserved by the Licensor.
+
+3. INTELLECTUAL PROPERTY & COPYRIGHT
+Source Code Protection: The HTML, CSS (including the specific glassmorphism theme and custom variables), and JavaScript logic (specifically the connection pathing, z-order management, and board synchronization) are the exclusive intellectual property of the Licensor.
+Moral Rights: In accordance with Article 4 of the Iranian Software Protection Law, the Licensor’s moral rights (including the right to be named as the creator) are permanent and non-transferable.
+Proprietary Notices: You must not remove or obscure the proprietary comments (e.g., <!-- Nokhbe Math Game - Proprietary/Confidential -->) located at the top of the file or within the UI.
+4. STRICT RESTRICTIONS
+The Licensee is expressly prohibited from:
+
+De-obfuscation & Modification: Attempting to alter the JavaScript functions (e.g., updateAllConnections, animateToNearestStarred) or CSS structure to rebrand the software as their own.
+Redistribution: Sharing, hosting, or distributing the Boards.html file or any derivative thereof on public repositories (like GitHub), CDNs, or private servers without prior written consent.
+Commercial Exploitation of Code: While you may use the software for your own commercial brainstorming, you may not sell, lease, or rent the Software itself or its underlying code to third parties.
+5. DATA PRIVACY & LOCAL STORAGE
+The Software utilizes localStorage for data persistence. The Licensor is not responsible for any data loss occurring within the Licensee’s browser environment. The Licensee is responsible for the content generated within the Software, ensuring it complies with the “Computer Crimes Law” of the Islamic Republic of Iran.
+
+6. NO REVERSE ENGINEERING
+The unique methods used to calculate SVG paths (straight, curved, wavy, parallel) and the drag-and-drop interaction model are trade secrets of the Licensor. Any attempt to reverse engineer these algorithms for use in competing products is a violation of this Agreement.
+
+7. LEGAL ENFORCEMENT & JURISDICTION
+This Agreement is governed by the laws of the Islamic Republic of Iran.
+Any unauthorized distribution or “Piracy” of this code will be prosecuted under Article 13 of the Law for Protection of Computer Software Creators, which may include imprisonment and payment of damages.
+The competent courts of Iran/Guilan/Rudsar shall have exclusive jurisdiction over any disputes.
+8. TERMINATION
+Failure to comply with any of the terms above (e.g., unauthorized sharing of the source code) will result in the immediate and automatic termination of this license, and the Licensor reserves the right to take legal action to protect the Intellectual Property.
