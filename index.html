@@ -1,0 +1,889 @@
+<!--
+Nokhbe Math Game
+Copyright (c) 2026 Abolfazl Fazeli
+All Rights Reserved
+
+This software is proprietary and confidential.
+Unauthorized copying, modification, distribution,
+or commercial use is prohibited.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boards | Online Brainstorming Program</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --text: #e2e8f0;
+            --text-dark: #1e293b;
+            --text-secondary: #94a3b8;
+            --glass-bg: rgba(255, 255, 255, 0.06);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --popup-bg: rgba(30, 41, 59, 0.9);
+            --popup-border: rgba(255, 255, 255, 0.2);
+            --accent: #818cf8;
+            --gold: #f59e0b;
+            --note-shadow: 2px 4px 16px rgba(0,0,0,0.3);
+            --transition: 0.25s cubic-bezier(0.4,0,0.2,1);
+            --header-height: 52px;
+            --tabs-height: 40px;
+            --select-bg: #1a1f2e;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            overflow: hidden;
+            height: 100vh;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+        .app-header {
+            position: fixed; top:0; left:0; right:0; height:var(--header-height);
+            background: var(--glass-bg);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-bottom: 1px solid var(--glass-border);
+            display: flex; align-items: center; padding:0 20px;
+            z-index: 10000; gap:12px;
+        }
+        .app-title {
+            font-size:1.3rem; font-weight:600;
+            background: linear-gradient(135deg, var(--text), #a5b4fc);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            margin-right:24px; white-space:nowrap;
+        }
+        .header-tabs { display:flex; gap:4px; align-items:center; margin-right:auto; }
+        .header-tab {
+            position:relative; background:transparent; border:none; color:var(--text-secondary);
+            padding:8px 16px; border-radius:10px; cursor:pointer;
+            font-weight:500; font-size:0.9rem; transition:all 0.2s; white-space:nowrap;
+        }
+        .header-tab:hover { background:rgba(255,255,255,0.1); color:var(--text); }
+        .header-tab.search-tab { margin-left:auto; }
+        .dropdown-panel {
+            position:absolute; top:calc(var(--header-height) + 8px);
+            background:var(--popup-bg); backdrop-filter:blur(32px); -webkit-backdrop-filter:blur(32px);
+            border:1px solid var(--popup-border); border-radius:18px; padding:8px 0; min-width:220px;
+            box-shadow:0 20px 50px rgba(0,0,0,0.5); z-index:10001; opacity:0; transform:translateY(-12px) scale(0.95);
+            pointer-events:none; transition:opacity 0.25s, transform 0.3s cubic-bezier(0.34,1.56,0.64,1); color:var(--text);
+        }
+        .dropdown-panel.show { opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
+        .dropdown-item {
+            padding:10px 20px; cursor:pointer; display:flex; align-items:center; gap:12px;
+            font-size:0.9rem; transition:background 0.15s;
+        }
+        .dropdown-item:hover { background:rgba(255,255,255,0.1); }
+        .dropdown-item svg { width:18px; height:18px; stroke:currentColor; stroke-width:2; fill:none; }
+        .dropdown-divider { height:1px; background:rgba(255,255,255,0.15); margin:6px 14px; }
+        .board-tabs {
+            position:fixed; top:var(--header-height); left:0; right:0; height:var(--tabs-height);
+            background:rgba(0,0,0,0.3); backdrop-filter:blur(10px);
+            border-bottom:1px solid var(--glass-border);
+            display:flex; align-items:center; padding:0 20px; gap:8px;
+            z-index:9998; overflow-x:auto;
+        }
+        .board-tab {
+            display:inline-flex; align-items:center; gap:6px;
+            padding:4px 8px 4px 12px; border-radius:20px;
+            background:rgba(255,255,255,0.08); color:var(--text-secondary);
+            cursor:pointer; font-size:0.8rem; border:1px solid transparent; transition:all 0.2s;
+        }
+        .board-tab.active { background:rgba(255,255,255,0.18); color:var(--text); border-color:rgba(255,255,255,0.3); }
+        .board-tab .tab-name { outline:none; max-width:120px; overflow:hidden; text-overflow:ellipsis; cursor:pointer; }
+        .board-tab .close-btn { background:none; border:none; color:inherit; cursor:pointer; width:18px; height:18px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
+        .board-tab .close-btn:hover { background:rgba(255,0,0,0.3); }
+        .board-tab .close-btn svg { width:12px; height:12px; stroke:currentColor; stroke-width:2; }
+        #board-container {
+            position:fixed; top:calc(var(--header-height) + var(--tabs-height)); left:0; right:0; bottom:0;
+            overflow:hidden; z-index:1; cursor:grab;
+        }
+        #board-container:active { cursor:grabbing; }
+        #board {
+            position:absolute; width:10000px; height:10000px;
+            transform-origin:0 0; will-change:transform;
+            background:radial-gradient(circle at 15px 15px, rgba(255,255,255,0.04) 1px, transparent 1px),
+                        radial-gradient(circle at 45px 45px, rgba(255,255,255,0.02) 0.8px, transparent 0.8px);
+            background-size:60px 60px,60px 60px;
+            transition:transform 0.6s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        #board.no-transition { transition:none; }
+        #connections-svg {
+            position:absolute; left:0; top:0; width:10000px; height:10000px;
+            pointer-events:none; z-index:2;
+        }
+        #connections-svg path.conn-path {
+            pointer-events:stroke; cursor:pointer; stroke-linecap:round; fill:none;
+            stroke-width:3; filter:drop-shadow(0 2px 6px rgba(0,0,0,0.3));
+        }
+        #connections-svg path.conn-path:hover { stroke-width:5; }
+        .sticky-note {
+            position:absolute; min-width:180px; max-width:380px; min-height:120px;
+            border-radius:8px 8px 6px 6px; box-shadow:var(--note-shadow);
+            cursor:grab; z-index:10; display:flex; flex-direction:column;
+            transition:box-shadow 0.2s, z-index 0.15s; will-change:left,top;
+            animation:noteAppear 0.4s cubic-bezier(0.34,1.56,0.64,1); color:var(--text-dark);
+        }
+        .sticky-note:hover { box-shadow:4px 8px 28px rgba(0,0,0,0.4); }
+        .sticky-note.dragging { z-index:100 !important; box-shadow:8px 16px 40px rgba(0,0,0,0.5); cursor:grabbing; }
+        .sticky-note.connecting-highlight { box-shadow:0 0 0 4px var(--accent); animation:pulseGlow 1.2s infinite; }
+        @keyframes noteAppear { 0%{transform:scale(0.5);opacity:0;} 100%{transform:scale(1);opacity:1;} }
+        @keyframes pulseGlow { 0%,100%{box-shadow:0 0 0 4px var(--accent);} 50%{box-shadow:0 0 0 10px rgba(129,140,248,0.3);} }
+        .note-header {
+            padding:10px 12px 4px; display:flex; align-items:center; justify-content:space-between;
+            border-radius:8px 8px 0 0; cursor:grab; flex-shrink:0;
+        }
+        .note-title-text { font-weight:700; font-size:0.95rem; color:var(--text-dark); flex:1; margin-right:8px; }
+        .star-btn {
+            background:none; border:none; cursor:pointer; padding:2px;
+            transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+            display:flex; align-items:center; color:var(--text-dark);
+        }
+        .star-btn:active { transform:scale(1.5); }
+        .star-btn svg { width:20px; height:20px; stroke:currentColor; fill:none; stroke-width:2; }
+        .sticky-note.starred .star-btn svg { fill:var(--gold); stroke:var(--gold); }
+        .note-body { flex:1; padding:4px 14px 12px; overflow:hidden; min-height:0; }
+        .note-body textarea {
+            width:100%; border:none; background:transparent; color:var(--text-dark); font-family:inherit;
+            outline:none; min-height:50px; resize:vertical; font-size:1rem;
+            user-select:text; -webkit-user-select:text; border-radius:4px; padding:4px;
+            max-width:100%; overflow-y:auto; white-space:pre-wrap; word-wrap:break-word;
+            box-sizing:border-box; overflow-x:hidden;
+        }
+        .tag-badge {
+            position:absolute; top:-30px; left:50%; transform:translateX(-50%);
+            background:var(--popup-bg); backdrop-filter:blur(10px);
+            border:1px solid var(--popup-border); border-radius:12px;
+            padding:2px 10px; font-size:0.7rem; font-weight:600;
+            color:var(--text); white-space:nowrap; z-index:30;
+            pointer-events:none; opacity:0; transition:opacity 0.3s;
+            box-shadow:0 4px 12px rgba(0,0,0,0.2);
+        }
+        .tag-badge.visible { opacity:1; }
+        .context-menu, .customization-popup, .conn-customization-popup {
+            position:fixed; z-index:10002;
+            background:var(--popup-bg); backdrop-filter:blur(32px); -webkit-backdrop-filter:blur(32px);
+            border:1px solid var(--popup-border); border-radius:20px;
+            box-shadow:0 25px 60px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.05);
+            opacity:0; transform:scale(0.85) translateY(-10px); pointer-events:none;
+            transition:opacity 0.25s, transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+            color:var(--text); padding:0; overflow:visible;
+        }
+        .context-menu.active, .customization-popup.active, .conn-customization-popup.active {
+            opacity:1; transform:scale(1) translateY(0); pointer-events:auto;
+        }
+        .context-menu { padding:8px 0; min-width:240px; max-height:90vh; overflow-y:auto; }
+        .context-menu-item {
+            padding:12px 20px; cursor:pointer; display:flex; align-items:center; gap:14px;
+            font-size:0.9rem; transition:background 0.15s, padding 0.2s; color:var(--text);
+            position:relative;
+        }
+        .context-menu-item:hover { background:rgba(255,255,255,0.1); padding-left:24px; }
+        .context-menu-item svg { stroke:currentColor; fill:none; stroke-width:2; }
+        .context-menu-item.danger { color:#f87171; }
+        .context-menu-item.danger:hover { background:rgba(248,113,113,0.15); }
+        /* expandable disconnect submenu */
+        .disconnect-submenu-wrapper {
+            padding-left: 20px;
+            overflow:hidden;
+            max-height:0;
+            opacity:0;
+            transition: max-height 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease, margin 0.2s;
+            background: rgba(255,255,255,0.03);
+            border-radius: 0 0 12px 12px;
+            margin: 0 8px;
+        }
+        .disconnect-submenu-wrapper.expanded {
+            max-height: 300px;
+            opacity:1;
+            margin-top:4px;
+            margin-bottom:4px;
+        }
+        .disconnect-submenu-item {
+            padding:10px 16px;
+            cursor:pointer;
+            display:flex;
+            align-items:center;
+            gap:10px;
+            font-size:0.82rem;
+            color:var(--text);
+            transition: background 0.15s, padding 0.2s;
+        }
+        .disconnect-submenu-item:hover {
+            background:rgba(255,255,255,0.08);
+            padding-left:20px;
+        }
+        .disconnect-submenu-item svg {
+            width:14px;
+            height:14px;
+            stroke:currentColor;
+            fill:none;
+            stroke-width:2;
+            flex-shrink:0;
+        }
+        .context-menu-item.has-arrow::after {
+            content: "›";
+            position: absolute;
+            right: 14px;
+            font-size: 1.2rem;
+            transition: transform 0.3s;
+            opacity:0.6;
+        }
+        .context-menu-item.has-arrow.expanded::after {
+            transform: rotate(90deg);
+        }
+        .customization-popup, .conn-customization-popup { width:560px; padding:24px; }
+        .customization-popup h3, .conn-customization-popup h3 { margin:0 0 16px; font-size:1.1rem; display:flex; align-items:center; gap:8px; }
+        .customization-popup label, .conn-customization-popup label {
+            font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;
+            color:var(--text-secondary); margin-bottom:4px; display:block;
+        }
+        .customization-popup input, .customization-popup select,
+        .conn-customization-popup input, .conn-customization-popup select {
+            width:100%; padding:10px 14px; border-radius:12px;
+            border:1px solid rgba(255,255,255,0.15); background:rgba(0,0,0,0.25);
+            color:var(--text); font-size:0.9rem; outline:none; margin-bottom:14px; transition:border-color 0.2s;
+        }
+        .customization-popup select option, .conn-customization-popup select option {
+            background:var(--select-bg); color:#e2e8f0; padding:8px;
+        }
+        .customization-popup input:focus, .customization-popup select:focus,
+        .conn-customization-popup input:focus, .conn-customization-popup select:focus { border-color:var(--accent); }
+        .color-swatches { display:flex; flex-wrap:wrap; gap:10px; margin:10px 0 16px; }
+        .color-swatch {
+            width:32px; height:32px; border-radius:50%; cursor:pointer;
+            border:2px solid transparent; transition:all 0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.2);
+        }
+        .color-swatch:hover { transform:scale(1.2); border-color:var(--text); }
+        .color-swatch.selected { border-color:var(--text); box-shadow:0 0 0 4px rgba(255,255,255,0.3); transform:scale(1.15); }
+        .popup-columns { display:flex; gap:24px; }
+        .popup-left, .popup-right { flex:1; }
+        .popup-divider {
+            width:1px; background:linear-gradient(to bottom, transparent, rgba(255,255,255,0.2), transparent);
+            margin:0 4px;
+        }
+        .z-order-buttons { display:flex; gap:10px; margin-bottom:0; }
+        .z-order-btn {
+            flex:1; padding:9px 12px; border-radius:10px; border:1px solid rgba(255,255,255,0.2);
+            background:rgba(255,255,255,0.08); color:var(--text); cursor:pointer;
+            font-size:0.8rem; font-weight:500; transition:all 0.2s;
+            display:flex; align-items:center; justify-content:center; gap:6px;
+        }
+        .z-order-btn:hover { background:rgba(255,255,255,0.16); border-color:var(--accent); }
+        .z-order-btn:active { transform:scale(0.95); }
+        .z-order-btn svg { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2; }
+        .popup-close-btn {
+            position:absolute; top:12px; right:16px; background:none; border:none; color:var(--text);
+            cursor:pointer; width:28px; height:28px; border-radius:50%; display:flex;
+            align-items:center; justify-content:center; transition:background 0.2s;
+        }
+        .popup-close-btn:hover { background:rgba(255,255,255,0.1); }
+        .popup-close-btn svg { stroke:currentColor; fill:none; stroke-width:2; }
+        .modal-overlay {
+            position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) scale(0.92);
+            width:640px; max-width:90vw; max-height:80vh; overflow-y:auto;
+            background:var(--popup-bg); backdrop-filter:blur(32px);
+            border:1px solid var(--popup-border); border-radius:24px;
+            padding:32px; box-shadow:0 30px 60px rgba(0,0,0,0.6);
+            z-index:10002; opacity:0; pointer-events:none;
+            transition:opacity 0.3s, transform 0.35s cubic-bezier(0.34,1.56,0.64,1); color:var(--text);
+        }
+        .modal-overlay.active { opacity:1; transform:translate(-50%,-50%) scale(1); pointer-events:auto; }
+        .modal-overlay h2 { margin-bottom:20px; font-size:1.6rem; }
+        .modal-overlay p, .modal-overlay li { font-size:0.95rem; line-height:1.7; }
+        .modal-overlay .close-modal {
+            position:absolute; top:16px; right:20px; background:none; border:none; color:var(--text);
+            cursor:pointer; width:32px; height:32px; border-radius:50%;
+            display:flex; align-items:center; justify-content:center; transition:background 0.2s;
+        }
+        .modal-overlay .close-modal:hover { background:rgba(255,255,255,0.1); }
+        .modal-overlay .close-modal svg { stroke:currentColor; fill:none; stroke-width:2; }
+        .search-result-item {
+            padding:12px 16px; cursor:pointer; border-radius:10px; margin:4px 0;
+            transition:all 0.2s; border:1px solid transparent; display:flex; align-items:center; gap:10px;
+        }
+        .search-result-item:hover { background:rgba(255,255,255,0.1); border-color:rgba(255,255,255,0.2); padding-left:20px; }
+        .search-result-item .result-tag { font-size:0.75rem; opacity:0.7; background:rgba(255,255,255,0.1); padding:2px 8px; border-radius:6px; }
+        .search-result-item .result-preview { font-size:0.78rem; opacity:0.5; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:200px; }
+        #return-to-star-btn {
+            position:fixed; bottom:28px; right:28px; z-index:9000;
+            width:52px; height:52px; border-radius:50%; border:none;
+            background:linear-gradient(135deg, #818cf8, #c084fc);
+            box-shadow:0 10px 30px rgba(129,140,248,0.5); color:#fff;
+            display:flex; align-items:center; justify-content:center;
+            transition:all 0.3s; animation:floatButton 3s ease-in-out infinite; cursor:pointer;
+        }
+        #return-to-star-btn:disabled { opacity:0.4; pointer-events:none; animation:none; }
+        #return-to-star-btn svg { stroke:#fff; fill:none; stroke-width:2; }
+        @keyframes floatButton { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-6px);} }
+        .toast {
+            position:fixed; top:20px; left:50%; transform:translateX(-50%) translateY(-120px);
+            z-index:99999; background:var(--popup-bg); padding:12px 28px;
+            border-radius:30px; color:var(--text); font-weight:600;
+            box-shadow:0 8px 30px rgba(0,0,0,0.3);
+            transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .toast.show { transform:translateX(-50%) translateY(0); }
+        @media (max-width:640px) {
+            .customization-popup { width:90vw; }
+            .popup-columns { flex-direction:column; }
+            .popup-divider { display:none; }
+        }
+    </style>
+</head>
+<body>
+    <svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+            <symbol id="icon-plus" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+            <symbol id="icon-star" viewBox="0 0 24 24"><polygon points="12,2 15,9 22,9 16,14 18,21 12,17 6,21 8,14 2,9 9,9"/></symbol>
+            <symbol id="icon-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+            <symbol id="icon-unlink" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/><line x1="2" y1="2" x2="22" y2="22"/></symbol>
+            <symbol id="icon-trash" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+            <symbol id="icon-x" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
+            <symbol id="icon-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></symbol>
+            <symbol id="icon-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></symbol>
+            <symbol id="icon-crosshair" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></symbol>
+            <symbol id="icon-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
+            <symbol id="icon-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+            <symbol id="icon-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></symbol>
+            <symbol id="icon-palette" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 0 0 20"/><circle cx="12" cy="12" r="3"/></symbol>
+            <symbol id="icon-front" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><rect x="7" y="7" width="10" height="10" rx="2"/><line x1="12" y1="3" x2="12" y2="7"/></symbol>
+            <symbol id="icon-back" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><rect x="7" y="7" width="10" height="10" rx="2"/><line x1="12" y1="17" x2="12" y2="21"/></symbol>
+        </defs>
+    </svg>
+
+    <header class="app-header">
+        <span class="app-title">📋 Boards</span>
+        <div class="header-tabs">
+            <button class="header-tab" data-dropdown="file">File</button>
+            <button class="header-tab" data-dropdown="view">View</button>
+            <button class="header-tab" data-dropdown="tools">Tools</button>
+            <button class="header-tab" data-dropdown="settings">Settings</button>
+            <button class="header-tab" id="tips-tab">Tips</button>
+            <button class="header-tab" id="about-tab">About</button>
+        </div>
+        <button class="header-tab search-tab" id="search-tab"><svg width="18" height="18" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-search"/></svg> Search</button>
+    </header>
+
+    <div class="dropdown-panel" id="dropdown-file">
+        <div class="dropdown-item" data-action="new-board"><svg><use href="#icon-plus"/></svg> New Board</div>
+        <div class="dropdown-item" data-action="export"><svg><use href="#icon-download"/></svg> Export Board</div>
+        <div class="dropdown-item" data-action="import"><svg><use href="#icon-upload"/></svg> Open Board File</div>
+        <div class="dropdown-divider"></div>
+        <div class="dropdown-item danger" data-action="delete-board"><svg><use href="#icon-trash"/></svg> Delete Board</div>
+    </div>
+    <div class="dropdown-panel" id="dropdown-view">
+        <div class="dropdown-item" data-action="toggle-tags"><svg><use href="#icon-palette"/></svg> <span id="tags-toggle-text">Show Tags</span></div>
+    </div>
+    <div class="dropdown-panel" id="dropdown-tools">
+        <div class="dropdown-item" data-action="go-center"><svg><use href="#icon-crosshair"/></svg> Go to Board Center</div>
+    </div>
+    <div class="dropdown-panel" id="dropdown-settings">
+        <div class="dropdown-item" id="board-stats-item"><svg><use href="#icon-info"/></svg> Board Summary</div>
+    </div>
+
+    <div class="board-tabs" id="board-tabs"></div>
+
+    <div id="board-container">
+        <div id="board" class="no-transition">
+            <svg id="connections-svg"></svg>
+        </div>
+    </div>
+
+    <!-- Context Menu with expandable Disconnect submenu -->
+    <div class="context-menu" id="context-menu">
+        <div class="context-menu-item" data-action="add-note"><svg width="20" height="20"><use href="#icon-plus"/></svg> Add Note</div>
+        <div class="context-menu-item" data-action="connect"><svg width="20" height="20"><use href="#icon-link"/></svg> Connect to Another</div>
+        <div class="context-menu-item has-arrow" id="disconnect-main-item">
+            <svg width="20" height="20"><use href="#icon-unlink"/></svg> Disconnect...
+        </div>
+        <div class="disconnect-submenu-wrapper" id="disconnect-submenu-wrapper">
+            <!-- populated dynamically -->
+        </div>
+        <div class="context-menu-item danger" data-action="disconnect-all"><svg width="20" height="20"><use href="#icon-x"/></svg> Remove All Connections</div>
+        <div class="dropdown-divider"></div>
+        <div class="context-menu-item danger" data-action="delete-note"><svg width="20" height="20"><use href="#icon-trash"/></svg> Delete Note</div>
+    </div>
+
+    <div class="customization-popup" id="customization-popup">
+        <button class="popup-close-btn" id="popup-close-btn"><svg width="16" height="16"><use href="#icon-x"/></svg></button>
+        <h3><svg width="20" height="20"><use href="#icon-palette"/></svg> Customize Note</h3>
+        <div class="popup-columns">
+            <div class="popup-left">
+                <label>Direction</label>
+                <select id="popup-direction"><option value="ltr">LTR</option><option value="rtl">RTL</option></select>
+                <label>Note Size <span id="size-label">Medium</span></label>
+                <input type="range" id="popup-size" min="0.7" max="2" step="0.1" value="1">
+                <label>Font Size <span id="fontsize-label">1rem</span></label>
+                <input type="range" id="popup-fontsize" min="0.7" max="2.5" step="0.1" value="1">
+                <label>Layer Order</label>
+                <div class="z-order-buttons">
+                    <button class="z-order-btn" id="btn-bring-front"><svg><use href="#icon-front"/></svg> Bring to Front</button>
+                    <button class="z-order-btn" id="btn-send-back"><svg><use href="#icon-back"/></svg> Send to Back</button>
+                </div>
+            </div>
+            <div class="popup-divider"></div>
+            <div class="popup-right">
+                <label>Title</label>
+                <input type="text" id="popup-title" placeholder="Note title">
+                <label>Font</label>
+                <select id="popup-font">
+                    <option value="'Segoe UI', system-ui, sans-serif">Sans</option>
+                    <option value="'Georgia', serif">Serif</option>
+                    <option value="'Courier New', monospace">Mono</option>
+                    <option value="'Comic Sans MS', cursive">Hand</option>
+                    <option value="'Raleway', sans-serif">Round</option>
+                    <option value="'Vazir', 'Tahoma', sans-serif">Persian</option>
+                </select>
+                <label>Color</label>
+                <div class="color-swatches" id="color-swatches">
+                    <span class="color-swatch" data-color="coral" style="background:#ffb3b3"></span>
+                    <span class="color-swatch" data-color="peach" style="background:#ffd1b3"></span>
+                    <span class="color-swatch" data-color="yellow" style="background:#fef3c7"></span>
+                    <span class="color-swatch" data-color="orange" style="background:#ffedd5"></span>
+                    <span class="color-swatch" data-color="pink" style="background:#fce7f3"></span>
+                    <span class="color-swatch" data-color="lavender" style="background:#ede9fe"></span>
+                    <span class="color-swatch" data-color="sky" style="background:#e0f2fe"></span>
+                    <span class="color-swatch" data-color="blue" style="background:#dbeafe"></span>
+                    <span class="color-swatch" data-color="indigo" style="background:#e0e7ff"></span>
+                    <span class="color-swatch" data-color="teal" style="background:#ccfbf1"></span>
+                    <span class="color-swatch" data-color="mint" style="background:#d1fae5"></span>
+                    <span class="color-swatch" data-color="white" style="background:#f8fafc"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="conn-customization-popup" id="conn-customization-popup">
+        <button class="popup-close-btn" id="conn-popup-close-btn"><svg width="16" height="16"><use href="#icon-x"/></svg></button>
+        <h3><svg width="20" height="20"><use href="#icon-palette"/></svg> Connection Style</h3>
+        <label>Line Color</label>
+        <div class="color-swatches" id="conn-color-swatches">
+            <span class="color-swatch" data-color="#a5b4fc" style="background:#a5b4fc"></span>
+            <span class="color-swatch" data-color="#f87171" style="background:#f87171"></span>
+            <span class="color-swatch" data-color="#fbbf24" style="background:#fbbf24"></span>
+            <span class="color-swatch" data-color="#34d399" style="background:#34d399"></span>
+            <span class="color-swatch" data-color="#60a5fa" style="background:#60a5fa"></span>
+            <span class="color-swatch" data-color="#c084fc" style="background:#c084fc"></span>
+            <span class="color-swatch" data-color="#f472b6" style="background:#f472b6"></span>
+            <span class="color-swatch" data-color="#fff" style="background:#fff;border:1px solid #ccc;"></span>
+        </div>
+        <label>Line Type</label>
+        <select id="conn-line-type">
+            <option value="curved">Curved</option>
+            <option value="straight">Straight</option>
+            <option value="straight-dashed">Straight Dashed</option>
+            <option value="curved-dashed">Curved Dashed</option>
+            <option value="wavy">Wavy</option>
+            <option value="parallel-2">Two Parallel Lines</option>
+            <option value="parallel-3">Three Parallel Lines</option>
+        </select>
+    </div>
+
+    <div class="modal-overlay" id="tips-modal">
+        <button class="close-modal"><svg width="20" height="20" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-x"/></svg></button>
+        <h2>💡 Tips & Help</h2>
+        <p><strong>Add notes:</strong> right‑click board → "Add Note".</p>
+        <p><strong>Move board:</strong> drag empty space or use scroll/pinch to zoom.</p>
+        <p><strong>Connect notes:</strong> right‑click note → "Connect to Another", then click another note.</p>
+        <p><strong>Disconnect:</strong> right‑click → "Disconnect..." then choose a connected note to remove that single link, or "Remove All Connections".</p>
+        <p><strong>Customize:</strong> left‑click note (not on text) → change color, font, size, direction, layer order.</p>
+        <p><strong>Star:</strong> click the star icon to mark important notes.</p>
+        <p><strong>Tags:</strong> View → "Show Tags" to see auto‑generated #tags above notes.</p>
+        <p><strong>Search:</strong> use the 🔍 button to find notes by title, tag, or content.</p>
+        <p><strong>Boards:</strong> up to 5 boards, rename by double‑clicking tab name.</p>
+        <p><strong>Export/Import:</strong> File menu for saving/loading board data.</p>
+    </div>
+    <div class="modal-overlay" id="about-modal">
+        <button class="close-modal"><svg width="20" height="20" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-x"/></svg></button>
+        <h2>About & Contact Us</h2>
+        <p><strong>Boards | Online Brainstorming Program</strong></p>
+        <p>Version 1.0.0</p>
+        <p>Developed by <strong>Abolfazl Fazeli</strong></p>
+        <p>📧 <a href="mailto:abolfazlfazelimahsayeh@gmail.com" style="color:var(--accent)">abolfazlfazelimahsayeh@gmail.com</a></p>
+        <p>(Copyright (c) 2026 Abolfazl Fazeli All Rights Reserved)</p>
+    </div>
+    <div class="modal-overlay" id="search-modal">
+        <button class="close-modal"><svg width="20" height="20" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-x"/></svg></button>
+        <h2>Search Notes</h2>
+        <input type="text" id="search-input" placeholder="Search by title, tag (#xxxx), or content..." style="width:100%; padding:12px 16px; border-radius:12px; border:1px solid var(--popup-border); background:rgba(0,0,0,0.2); color:var(--text); margin-bottom:16px; font-size:0.95rem;">
+        <div id="search-results"></div>
+    </div>
+    <div class="modal-overlay" id="stats-modal">
+        <button class="close-modal"><svg width="20" height="20" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-x"/></svg></button>
+        <h2>Board Summary</h2>
+        <div id="stats-content"></div>
+    </div>
+
+    <button id="return-to-star-btn" title="Go to nearest starred note"><svg width="24" height="24" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-star"/></svg></button>
+    <div class="toast" id="toast"></div>
+    <input type="file" id="import-file-input" accept=".json,.txt" style="display:none">
+
+    <script>
+        (() => {
+            const svgIcon = (id, size=18) => `<svg width="${size}" height="${size}" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-${id}"/></svg>`;
+            const escapeHtml = str => { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; };
+            const generateTag = () => { const chars='abcdefghijklmnopqrstuvwxyz0123456789'; let t='#'; for(let i=0;i<4;i++) t+=chars[Math.floor(Math.random()*36)]; return t; };
+
+            const boardContainer = document.getElementById('board-container');
+            const boardEl = document.getElementById('board');
+            const connectionsSvg = document.getElementById('connections-svg');
+            const boardTabsEl = document.getElementById('board-tabs');
+            const contextMenu = document.getElementById('context-menu');
+            const customizationPopup = document.getElementById('customization-popup');
+            const connCustomizationPopup = document.getElementById('conn-customization-popup');
+            const returnBtn = document.getElementById('return-to-star-btn');
+            const toast = document.getElementById('toast');
+            const importFileInput = document.getElementById('import-file-input');
+            const popupTitle = document.getElementById('popup-title');
+            const popupFont = document.getElementById('popup-font');
+            const popupDirection = document.getElementById('popup-direction');
+            const popupSize = document.getElementById('popup-size');
+            const popupFontSize = document.getElementById('popup-fontsize');
+            const sizeLabel = document.getElementById('size-label');
+            const fontsizeLabel = document.getElementById('fontsize-label');
+            const colorSwatches = document.getElementById('color-swatches');
+            const popupCloseBtn = document.getElementById('popup-close-btn');
+            const btnBringFront = document.getElementById('btn-bring-front');
+            const btnSendBack = document.getElementById('btn-send-back');
+            const connPopupCloseBtn = document.getElementById('conn-popup-close-btn');
+            const connColorSwatches = document.getElementById('conn-color-swatches');
+            const connLineType = document.getElementById('conn-line-type');
+            const disconnectMainItem = document.getElementById('disconnect-main-item');
+            const disconnectSubmenuWrapper = document.getElementById('disconnect-submenu-wrapper');
+            const tagsToggleText = document.getElementById('tags-toggle-text');
+            const searchInput = document.getElementById('search-input');
+            const searchResults = document.getElementById('search-results');
+            const statsContent = document.getElementById('stats-content');
+            const tipsModal = document.getElementById('tips-modal');
+            const aboutModal = document.getElementById('about-modal');
+            const searchModal = document.getElementById('search-modal');
+            const statsModal = document.getElementById('stats-modal');
+
+            let audioCtx=null;
+            const play=(type)=>{ try{ if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==='suspended') audioCtx.resume(); const n=audioCtx.currentTime; if(type==='click'){const o=audioCtx.createOscillator();o.type='sine';o.frequency.setValueAtTime(800,n);o.frequency.exponentialRampToValueAtTime(400,n+0.08);const g=audioCtx.createGain();g.gain.setValueAtTime(0.2,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.1);o.connect(g);g.connect(audioCtx.destination);o.start(n);o.stop(n+0.1);} else if(type==='pop'){const o=audioCtx.createOscillator();o.type='triangle';o.frequency.setValueAtTime(600,n);o.frequency.exponentialRampToValueAtTime(150,n+0.15);const g=audioCtx.createGain();g.gain.setValueAtTime(0.25,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.18);o.connect(g);g.connect(audioCtx.destination);o.start(n);o.stop(n+0.18);} else if(type==='star'){const o=audioCtx.createOscillator();o.type='sine';o.frequency.setValueAtTime(1046.5,n);const g=audioCtx.createGain();g.gain.setValueAtTime(0.3,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.2);o.connect(g);g.connect(audioCtx.destination);o.start(n);o.stop(n+0.2);} else if(type==='return'){const o1=audioCtx.createOscillator();o1.type='sine';o1.frequency.value=523.25;const o2=audioCtx.createOscillator();o2.type='sine';o2.frequency.value=659.25;const g=audioCtx.createGain();g.gain.setValueAtTime(0.3,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.4);o1.connect(g);o2.connect(g);g.connect(audioCtx.destination);o1.start(n);o2.start(n);o1.stop(n+0.4);o2.stop(n+0.4);} }catch(e){} };
+            let toastTimeout;
+            const showToast=(msg)=>{toast.textContent=msg;toast.classList.add('show');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>toast.classList.remove('show'),2000);};
+
+            let boards=[],activeBoardIdx=0,viewX=0,viewY=0,zoom=1;
+            const BOARD_CENTER=5000,MIN_ZOOM=0.2,MAX_ZOOM=4;
+            let connectingFromId=null,contextMenuTargetId=null,customizationTargetId=null,connCustomizationTargetId=null;
+            let showTags=false;
+            let globalZCounter = 10;
+
+            let isPanning=false,isDraggingNote=false,dragNoteId=null;
+            let dragStartX=0,dragStartY=0,dragNoteOrigX=0,dragNoteOrigY=0;
+            let panStartViewX=0,panStartViewY=0,panStartMouseX=0,panStartMouseY=0;
+            let potentialClickNoteId=null,clickStartX=0,clickStartY=0;
+            const DRAG_THRESHOLD=4;
+            let pinchStartDist=0,pinchStartZoom=1,pinchStartViewX=0,pinchStartViewY=0;
+            let touchMoved=false;
+
+            const NOTE_COLORS={coral:'#ffb3b3',peach:'#ffd1b3',yellow:'#fef3c7',orange:'#ffedd5',pink:'#fce7f3',lavender:'#ede9fe',sky:'#e0f2fe',blue:'#dbeafe',indigo:'#e0e7ff',teal:'#ccfbf1',mint:'#d1fae5',white:'#f8fafc'};
+            const NOTE_HEADER={coral:'#fca5a5',peach:'#fdba74',yellow:'#fde68a',orange:'#fdba74',pink:'#f9a8d4',lavender:'#c4b5fd',sky:'#bae6fd',blue:'#93c5fd',indigo:'#a5b4fc',teal:'#5eead4',mint:'#86efac',white:'#e2e8f0'};
+
+            const getBoard=()=>boards[activeBoardIdx];
+            const save=()=>{try{localStorage.setItem('boardsData',JSON.stringify(boards));}catch(e){}};
+
+            const updateTransform=(animate=false)=>{ boardEl.classList.toggle('no-transition',!animate); boardEl.style.transform=`translate(${viewX}px,${viewY}px) scale(${zoom})`; updateAllConnections(); };
+            const screenToBoard=(sx,sy)=>{const r=boardContainer.getBoundingClientRect();return{x:(sx-r.left-viewX)/zoom,y:(sy-r.top-viewY)/zoom};};
+            const boardToScreen=(bx,by)=>{const r=boardContainer.getBoundingClientRect();return{x:bx*zoom+viewX+r.left,y:by*zoom+viewY+r.top};};
+
+            const createNote=(x,y,title='New Note',color='yellow',font="'Segoe UI', system-ui, sans-serif",sizeScale=1,fontSize=1,direction='ltr')=>{
+                const board=getBoard();
+                if(typeof board.noteIdCounter!=='number') board.noteIdCounter=0;
+                const id='n'+(++board.noteIdCounter);
+                const zIndex = ++globalZCounter;
+                const note={id,x,y,title,color,font,sizeScale,fontSize,starred:false,direction,connections:[],tag:generateTag(),zIndex};
+                board.notes.push(note);
+                renderNoteElement(note);
+                updateAllConnections();
+                save();
+                return note;
+            };
+
+            const renderNoteElement=(note)=>{
+                const exist=document.querySelector(`[data-note-id="${note.id}"]`);
+                if(exist) exist.remove();
+                const el=document.createElement('div');
+                el.className='sticky-note'+(note.starred?' starred':'');
+                el.setAttribute('data-note-id',note.id);
+                el.style.left=note.x+'px';el.style.top=note.y+'px';
+                el.style.width=(note.sizeScale*220)+'px';el.style.minHeight=(note.sizeScale*140)+'px';
+                el.style.backgroundColor=NOTE_COLORS[note.color]||'#fef3c7';
+                el.style.fontFamily=note.font;
+                el.style.zIndex = note.zIndex || 10;
+                el.dir=note.direction||'ltr';
+                const hc=NOTE_HEADER[note.color]||'#fde68a';
+                el.innerHTML=`<div class="tag-badge">${note.tag}</div>
+                    <div class="note-header" style="background:${hc}"><span class="note-title-text">${escapeHtml(note.title)}</span><button class="star-btn">${svgIcon('star',20)}</button></div>
+                    <div class="note-body"><textarea placeholder="Write here..." style="font-size:${note.fontSize}rem;" dir="${note.direction||'ltr'}"></textarea></div>`;
+                el.querySelector('.star-btn').addEventListener('click',(e)=>{e.stopPropagation();toggleStar(note.id);});
+                el.addEventListener('mousedown',(e)=>onNoteMouseDown(e,note.id));
+                el.addEventListener('touchstart',(e)=>onNoteTouchStart(e,note.id),{passive:false});
+                el.addEventListener('contextmenu',(e)=>{e.preventDefault();onNoteContextMenu(e,note.id);});
+                boardEl.appendChild(el);
+                if(showTags) el.querySelector('.tag-badge').classList.add('visible');
+            };
+
+            const updateNoteElement=(note)=>{
+                const el=document.querySelector(`[data-note-id="${note.id}"]`);
+                if(!el) return;
+                el.style.left=note.x+'px';el.style.top=note.y+'px';
+                el.style.width=(note.sizeScale*220)+'px';el.style.minHeight=(note.sizeScale*140)+'px';
+                el.style.backgroundColor=NOTE_COLORS[note.color]||'#fef3c7';
+                el.style.fontFamily=note.font;el.dir=note.direction||'ltr';
+                el.style.zIndex = note.zIndex || 10;
+                el.querySelector('.note-header').style.background=NOTE_HEADER[note.color]||'#fde68a';
+                el.querySelector('.note-title-text').textContent=note.title;
+                const ta=el.querySelector('textarea');
+                if(ta){ta.style.fontSize=note.fontSize+'rem';ta.dir=note.direction||'ltr';}
+                el.classList.toggle('starred',note.starred);
+                el.querySelector('.star-btn').innerHTML=svgIcon('star',20);
+                const badge=el.querySelector('.tag-badge');
+                if(badge){badge.textContent=note.tag;badge.classList.toggle('visible',showTags);}
+            };
+
+            const bringToFront=(noteId)=>{
+                const note=getBoard().notes.find(n=>n.id===noteId);
+                if(!note) return;
+                note.zIndex = ++globalZCounter;
+                updateNoteElement(note);
+                save();
+            };
+            const sendToBack=(noteId)=>{
+                const note=getBoard().notes.find(n=>n.id===noteId);
+                if(!note) return;
+                const board=getBoard();
+                const minZ = Math.min(...board.notes.map(n=>n.zIndex||10), 10);
+                note.zIndex = Math.max(1, minZ - 1);
+                updateNoteElement(note);
+                save();
+            };
+
+            btnBringFront.addEventListener('click',()=>{if(customizationTargetId){bringToFront(customizationTargetId);showToast('Brought to front');play('pop');}});
+            btnSendBack.addEventListener('click',()=>{if(customizationTargetId){sendToBack(customizationTargetId);showToast('Sent to back');play('pop');}});
+
+            const toggleStar=(noteId)=>{
+                const note=getBoard().notes.find(n=>n.id===noteId);
+                if(!note) return;
+                note.starred=!note.starred;
+                updateNoteElement(note);
+                updateReturnBtn();
+                play('star');
+                save();
+            };
+
+            const deleteNote=(id)=>{const board=getBoard();const note=board.notes.find(n=>n.id===id);if(!note) return;[...note.connections].forEach(cid=>removeConnection(cid));document.querySelector(`[data-note-id="${id}"]`)?.remove();board.notes=board.notes.filter(n=>n.id!==id);updateAllConnections();closeAllPopups();save();};
+            const addConnection=(fromId,toId,color='#a5b4fc',type='curved')=>{const board=getBoard();if(!board.connections) board.connections=[];const exist=board.connections.find(c=>(c.fromNoteId===fromId&&c.toNoteId===toId)||(c.fromNoteId===toId&&c.toNoteId===fromId));if(exist) return null;const connId='conn-'+Date.now()+'-'+Math.random().toString(36).substr(2,6);const conn={id:connId,fromNoteId:fromId,toNoteId:toId,color,type};board.connections.push(conn);const n1=board.notes.find(n=>n.id===fromId),n2=board.notes.find(n=>n.id===toId);if(n1)n1.connections.push(connId);if(n2)n2.connections.push(connId);updateAllConnections();save();return connId;};
+            const removeConnection=(connId)=>{const board=getBoard();const conn=(board.connections||[]).find(c=>c.id===connId);if(!conn) return;const n1=board.notes.find(n=>n.id===conn.fromNoteId),n2=board.notes.find(n=>n.id===conn.toNoteId);if(n1)n1.connections=n1.connections.filter(c=>c!==connId);if(n2)n2.connections=n2.connections.filter(c=>c!==connId);board.connections=board.connections.filter(c=>c.id!==connId);updateAllConnections();save();};
+
+            const buildWavyPath=(x1,y1,x2,y2)=>{const dx=x2-x1,dy=y2-y1,dist=Math.sqrt(dx*dx+dy*dy)||1;const perpX=-dy/dist,perpY=dx/dist;const amplitude=Math.min(dist*0.08,30);let d=`M ${x1} ${y1}`;for(let i=1;i<=8;i++){const t=i/8;const px=x1+dx*t,py=y1+dy*t;const wave=Math.sin(t*Math.PI*4)*amplitude;d+=` Q ${px+perpX*wave*0.5} ${py+perpY*wave*0.5} ${px} ${py}`;} return d;};
+            const buildParallelPath=(x1,y1,x2,y2,count)=>{const dx=x2-x1,dy=y2-y1,dist=Math.sqrt(dx*dx+dy*dy)||1;const perpX=-dy/dist,perpY=dx/dist;const spacing=6;const offsets=count===2?[-spacing/2,spacing/2]:[-spacing,0,spacing];const midX=(x1+x2)/2,midY=(y1+y2)/2;const cx=midX+perpX*Math.min(dist*0.25,120),cy=midY+perpY*Math.min(dist*0.25,120);return offsets.map(off=>`M ${x1+perpX*off} ${y1+perpY*off} Q ${cx+perpX*off} ${cy+perpY*off} ${x2+perpX*off} ${y2+perpY*off}`);};
+
+            const updateAllConnections=()=>{while(connectionsSvg.firstChild) connectionsSvg.removeChild(connectionsSvg.firstChild);const board=getBoard();if(!board.connections) board.connections=[];board.connections.forEach(conn=>{const n1=board.notes.find(n=>n.id===conn.fromNoteId),n2=board.notes.find(n=>n.id===conn.toNoteId);if(!n1||!n2) return;const x1=n1.x+n1.sizeScale*110,y1=n1.y+n1.sizeScale*70;const x2=n2.x+n2.sizeScale*110,y2=n2.y+n2.sizeScale*70;const midX=(x1+x2)/2,midY=(y1+y2)/2;const dx=x2-x1,dy=y2-y1,dist=Math.sqrt(dx*dx+dy*dy)||1;const curveOffset=Math.min(dist*0.25,120);const cx=midX-dy/dist*curveOffset,cy=midY+dx/dist*curveOffset;const createPath=(d)=>{const p=document.createElementNS('http://www.w3.org/2000/svg','path');p.setAttribute('d',d);p.setAttribute('data-conn-id',conn.id);p.classList.add('conn-path');p.style.stroke=conn.color||'#a5b4fc';if(conn.type.includes('dashed')) p.style.strokeDasharray='8,6';p.addEventListener('contextmenu',(e)=>{e.preventDefault();e.stopPropagation();showConnCustomizationPopup(e.clientX,e.clientY,conn.id);});connectionsSvg.appendChild(p);};if(conn.type==='straight'||conn.type==='straight-dashed') createPath(`M ${x1} ${y1} L ${x2} ${y2}`);else if(conn.type==='curved-dashed'||conn.type==='curved') createPath(`M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`);else if(conn.type==='wavy') createPath(buildWavyPath(x1,y1,x2,y2));else if(conn.type==='parallel-2'||conn.type==='parallel-3'){const count=conn.type==='parallel-2'?2:3;buildParallelPath(x1,y1,x2,y2,count).forEach(d=>createPath(d));} else createPath(`M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`);});};
+
+            const updateReturnBtn=()=>returnBtn.disabled=getBoard().notes.filter(n=>n.starred).length===0;
+            const animateToNote=(note)=>{const rect=boardContainer.getBoundingClientRect();const tx=note.x+note.sizeScale*110,ty=note.y+note.sizeScale*70;const targetZoom=Math.min(Math.max(zoom,0.6),1.5);const newViewX=rect.width/2-tx*targetZoom,newViewY=rect.height/2-ty*targetZoom;const startX=viewX,startY=viewY,startZoom=zoom;const startTime=performance.now();const step=(now)=>{const p=Math.min((now-startTime)/600,1);const e=1-Math.pow(1-p,3);viewX=startX+(newViewX-startX)*e;viewY=startY+(newViewY-startY)*e;zoom=startZoom+(targetZoom-startZoom)*e;updateTransform(false);if(p<1) requestAnimationFrame(step);else{viewX=newViewX;viewY=newViewY;zoom=targetZoom;updateTransform(false);}};requestAnimationFrame(step);play('return');};
+            const animateToNearestStarred=()=>{const board=getBoard();const starred=board.notes.filter(n=>n.starred);if(!starred.length){showToast('No starred notes');return;}const rect=boardContainer.getBoundingClientRect();const centerX=(rect.width/2-viewX)/zoom,centerY=(rect.height/2-viewY)/zoom;let closest=starred[0],minDist=Infinity;starred.forEach(n=>{const dx=(n.x+n.sizeScale*110)-centerX,dy=(n.y+n.sizeScale*70)-centerY;const d=dx*dx+dy*dy;if(d<minDist){minDist=d;closest=n;}});animateToNote(closest);showToast('Returning to nearest starred note');};
+            returnBtn.addEventListener('click',animateToNearestStarred);
+
+            const closeAllPopups=()=>{hideContextMenu();hideCustomizationPopup();hideConnCustomizationPopup();};
+            const showContextMenu=(sx,sy,noteId=null)=>{
+                contextMenuTargetId=noteId;
+                contextMenu.style.left=Math.min(sx,innerWidth-250)+'px';
+                contextMenu.style.top=Math.min(sy,innerHeight-350)+'px';
+                // Reset disconnect submenu
+                disconnectSubmenuWrapper.classList.remove('expanded');
+                disconnectMainItem.classList.remove('expanded');
+                disconnectSubmenuWrapper.innerHTML = '';
+                if(noteId){
+                    const note=getBoard().notes.find(n=>n.id===noteId);
+                    if(note && note.connections.length>0){
+                        const board=getBoard();
+                        note.connections.forEach(cid=>{
+                            const conn=(board.connections||[]).find(c=>c.id===cid);
+                            if(!conn) return;
+                            const otherId=conn.fromNoteId===noteId?conn.toNoteId:conn.fromNoteId;
+                            const other=board.notes.find(n=>n.id===otherId);
+                            if(!other) return;
+                            const item=document.createElement('div');
+                            item.className='disconnect-submenu-item';
+                            item.innerHTML=`<svg width="14" height="14"><use href="#icon-unlink"/></svg> ${escapeHtml(other.title||'Note')} <span style="opacity:0.5;font-size:0.7rem;margin-left:auto;">${other.tag||''}</span>`;
+                            item.addEventListener('click',(e)=>{
+                                e.stopPropagation();
+                                removeConnection(cid);
+                                hideContextMenu();
+                                showToast('Connection removed');
+                                play('pop');
+                            });
+                            disconnectSubmenuWrapper.appendChild(item);
+                        });
+                    }else{
+                        const emptyItem=document.createElement('div');
+                        emptyItem.className='disconnect-submenu-item';
+                        emptyItem.style.opacity='0.5';
+                        emptyItem.textContent='No connections';
+                        disconnectSubmenuWrapper.appendChild(emptyItem);
+                    }
+                }
+                contextMenu.classList.add('active');play('click');
+            };
+            const hideContextMenu=()=>{
+                contextMenu.classList.remove('active');
+                disconnectSubmenuWrapper.classList.remove('expanded');
+                disconnectMainItem.classList.remove('expanded');
+            };
+
+            // Toggle disconnect submenu
+            disconnectMainItem.addEventListener('click',(e)=>{
+                e.stopPropagation();
+                const isExpanded = disconnectSubmenuWrapper.classList.contains('expanded');
+                if(isExpanded){
+                    disconnectSubmenuWrapper.classList.remove('expanded');
+                    disconnectMainItem.classList.remove('expanded');
+                }else{
+                    disconnectSubmenuWrapper.classList.add('expanded');
+                    disconnectMainItem.classList.add('expanded');
+                }
+            });
+
+            const showCustomizationPopup=(noteId)=>{
+                const note=getBoard().notes.find(n=>n.id===noteId);
+                if(!note) return;
+                customizationTargetId=noteId;
+                popupTitle.value=note.title;popupFont.value=note.font;popupDirection.value=note.direction||'ltr';
+                popupSize.value=note.sizeScale;popupFontSize.value=note.fontSize;
+                sizeLabel.textContent=note.sizeScale<0.8?'Small':note.sizeScale<1.2?'Medium':note.sizeScale<1.6?'Large':'XL';
+                fontsizeLabel.textContent=note.fontSize+'rem';
+                colorSwatches.querySelectorAll('.color-swatch').forEach(s=>s.classList.toggle('selected',s.dataset.color===note.color));
+                const bounds=boardToScreen(note.x+note.sizeScale*110,note.y);
+                const pw=560,ph=400;let px=bounds.x+20,py=bounds.y-50;
+                if(px+pw>innerWidth-10) px=bounds.x-pw-20;px=Math.max(10,px);
+                if(py+ph>innerHeight-10) py=innerHeight-ph-10;if(py<10) py=10;
+                customizationPopup.style.left=px+'px';customizationPopup.style.top=py+'px';
+                customizationPopup.classList.add('active');play('click');
+            };
+            const hideCustomizationPopup=()=>customizationPopup.classList.remove('active');
+            const showConnCustomizationPopup=(sx,sy,connId)=>{
+                connCustomizationTargetId=connId;
+                const conn=(getBoard().connections||[]).find(c=>c.id===connId);
+                if(!conn) return;
+                connLineType.value=conn.type||'curved';
+                connColorSwatches.querySelectorAll('.color-swatch').forEach(s=>s.classList.toggle('selected',s.dataset.color===conn.color));
+                connCustomizationPopup.style.left=Math.min(sx,innerWidth-330)+'px';
+                connCustomizationPopup.style.top=Math.min(sy,innerHeight-400)+'px';
+                connCustomizationPopup.classList.add('active');play('click');
+            };
+            const hideConnCustomizationPopup=()=>connCustomizationPopup.classList.remove('active');
+
+            contextMenu.addEventListener('click',(e)=>{
+                const item=e.target.closest('.context-menu-item');
+                if(!item) return;
+                if(item === disconnectMainItem) return; // handled separately
+                const action=item.dataset.action;
+                if(action==='add-note'){const bp=screenToBoard(contextMenu.getBoundingClientRect().left+120,contextMenu.getBoundingClientRect().top+140);createNote(bp.x-110,bp.y-70);showToast('Note added');play('pop');}
+                else if(action==='connect'&&contextMenuTargetId){connectingFromId=contextMenuTargetId;document.querySelector(`[data-note-id="${contextMenuTargetId}"]`)?.classList.add('connecting-highlight');showToast('Click another note to connect');}
+                else if(action==='disconnect-all'&&contextMenuTargetId){const note=getBoard().notes.find(n=>n.id===contextMenuTargetId);if(note){[...note.connections].forEach(cid=>removeConnection(cid));showToast('All connections removed');}}
+                else if(action==='delete-note'&&contextMenuTargetId){deleteNote(contextMenuTargetId);showToast('Note deleted');play('pop');}
+                hideContextMenu();
+            });
+
+            popupCloseBtn.addEventListener('click',hideCustomizationPopup);
+            popupTitle.addEventListener('input',()=>{if(customizationTargetId){const note=getBoard().notes.find(n=>n.id===customizationTargetId);if(note){note.title=popupTitle.value||'Untitled';updateNoteElement(note);save();}}});
+            popupFont.addEventListener('change',()=>{if(customizationTargetId){const note=getBoard().notes.find(n=>n.id===customizationTargetId);if(note){note.font=popupFont.value;updateNoteElement(note);save();}}});
+            popupDirection.addEventListener('change',()=>{if(customizationTargetId){const note=getBoard().notes.find(n=>n.id===customizationTargetId);if(note){note.direction=popupDirection.value;updateNoteElement(note);save();}}});
+            popupSize.addEventListener('input',()=>{const val=parseFloat(popupSize.value);sizeLabel.textContent=val<0.8?'Small':val<1.2?'Medium':val<1.6?'Large':'XL';if(customizationTargetId){const note=getBoard().notes.find(n=>n.id===customizationTargetId);if(note){note.sizeScale=val;updateNoteElement(note);updateAllConnections();save();}}});
+            popupFontSize.addEventListener('input',()=>{const val=parseFloat(popupFontSize.value);fontsizeLabel.textContent=val.toFixed(1)+'rem';if(customizationTargetId){const note=getBoard().notes.find(n=>n.id===customizationTargetId);if(note){note.fontSize=val;updateNoteElement(note);save();}}});
+            colorSwatches.addEventListener('click',(e)=>{const sw=e.target.closest('.color-swatch');if(!sw||!customizationTargetId) return;const note=getBoard().notes.find(n=>n.id===customizationTargetId);if(note){note.color=sw.dataset.color;updateNoteElement(note);colorSwatches.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('selected'));sw.classList.add('selected');save();}});
+
+            connPopupCloseBtn.addEventListener('click',hideConnCustomizationPopup);
+            connLineType.addEventListener('change',()=>{if(connCustomizationTargetId){const conn=(getBoard().connections||[]).find(c=>c.id===connCustomizationTargetId);if(conn){conn.type=connLineType.value;updateAllConnections();save();}}});
+            connColorSwatches.addEventListener('click',(e)=>{const sw=e.target.closest('.color-swatch');if(!sw||!connCustomizationTargetId) return;const conn=(getBoard().connections||[]).find(c=>c.id===connCustomizationTargetId);if(conn){conn.color=sw.dataset.color;updateAllConnections();connColorSwatches.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('selected'));sw.classList.add('selected');save();}});
+
+            const positionDropdown=(dropdown,triggerBtn)=>{const rect=triggerBtn.getBoundingClientRect();dropdown.style.left=rect.left+'px';dropdown.style.top=(rect.bottom+4)+'px';};
+            document.querySelectorAll('.header-tab[data-dropdown]').forEach(btn=>{btn.addEventListener('click',()=>{const panel=document.getElementById('dropdown-'+btn.dataset.dropdown);if(!panel) return;const isOpen=panel.classList.contains('show');document.querySelectorAll('.dropdown-panel').forEach(p=>p.classList.remove('show'));if(!isOpen){positionDropdown(panel,btn);panel.classList.add('show');}});});
+            document.addEventListener('click',(e)=>{if(!e.target.closest('.header-tab')&&!e.target.closest('.dropdown-panel')) document.querySelectorAll('.dropdown-panel').forEach(p=>p.classList.remove('show'));});
+
+            document.querySelector('[data-action="toggle-tags"]').addEventListener('click',()=>{showTags=!showTags;tagsToggleText.textContent=showTags?'Hide Tags':'Show Tags';document.querySelectorAll('.tag-badge').forEach(b=>b.classList.toggle('visible',showTags));document.querySelectorAll('.dropdown-panel').forEach(p=>p.classList.remove('show'));});
+
+            document.getElementById('board-stats-item').addEventListener('click',()=>{const board=getBoard();const notes=board.notes;let words=0;notes.forEach(n=>{const ta=document.querySelector(`[data-note-id="${n.id}"] textarea`);if(ta) words+=ta.value.trim().split(/\s+/).filter(w=>w).length;});const connected=notes.filter(n=>n.connections.length>0).length;statsContent.innerHTML=`<p>📌 Total notes: <strong>${notes.length}</strong></p><p>📝 Total words: <strong>${words}</strong></p><p>🔗 Connection lines: <strong>${board.connections?board.connections.length:0}</strong></p><p>🔗 Connected notes: <strong>${connected}</strong></p><p>🔗 Unconnected notes: <strong>${notes.length-connected}</strong></p>`;statsModal.classList.add('active');document.querySelectorAll('.dropdown-panel').forEach(p=>p.classList.remove('show'));});
+
+            document.getElementById('tips-tab').addEventListener('click',()=>tipsModal.classList.add('active'));
+            document.getElementById('about-tab').addEventListener('click',()=>aboutModal.classList.add('active'));
+            document.getElementById('search-tab').addEventListener('click',()=>searchModal.classList.add('active'));
+            document.querySelectorAll('.close-modal').forEach(btn=>btn.addEventListener('click',()=>{tipsModal.classList.remove('active');aboutModal.classList.remove('active');searchModal.classList.remove('active');statsModal.classList.remove('active');}));
+            window.addEventListener('click',(e)=>{if(e.target===tipsModal) tipsModal.classList.remove('active');if(e.target===aboutModal) aboutModal.classList.remove('active');if(e.target===searchModal) searchModal.classList.remove('active');if(e.target===statsModal) statsModal.classList.remove('active');});
+
+            searchInput.addEventListener('input',()=>{
+                const q=searchInput.value.trim().toLowerCase();
+                searchResults.innerHTML='';
+                if(!q) return;
+                const board=getBoard();
+                const filtered=board.notes.filter(n=>{
+                    if(n.title.toLowerCase().includes(q)) return true;
+                    if(n.tag.toLowerCase().includes(q)) return true;
+                    const ta=document.querySelector(`[data-note-id="${n.id}"] textarea`);
+                    if(ta&&ta.value.toLowerCase().includes(q)) return true;
+                    return false;
+                });
+                filtered.forEach(n=>{
+                    const div=document.createElement('div');
+                    div.className='search-result-item';
+                    const ta=document.querySelector(`[data-note-id="${n.id}"] textarea`);
+                    const contentPreview=ta?ta.value.substring(0,60):'';
+                    div.innerHTML=`<svg width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-search"/></svg>
+                        <strong>${escapeHtml(n.title)}</strong>
+                        <span class="result-tag">${n.tag}</span>
+                        ${contentPreview?`<span class="result-preview">${escapeHtml(contentPreview)}</span>`:''}`;
+                    div.addEventListener('click',()=>{animateToNote(n);searchModal.classList.remove('active');});
+                    searchResults.appendChild(div);
+                });
+                if(filtered.length===0) searchResults.innerHTML='<p style="opacity:0.5;text-align:center;padding:20px;">No notes found matching your search.</p>';
+            });
+
+            document.querySelector('#dropdown-file .dropdown-item[data-action="new-board"]').addEventListener('click',()=>{if(boards.length>=5){showToast('Max 5 boards');return;}boards.push({id:Date.now().toString(),name:'Board '+(boards.length+1),notes:[],noteIdCounter:0,connections:[],viewX:0,viewY:0,zoom:1});globalZCounter=10;switchToBoard(boards.length-1);renderBoardTabs();closeDropdowns();});
+            document.querySelector('#dropdown-file .dropdown-item[data-action="export"]').addEventListener('click',()=>{const data=JSON.stringify(getBoard(),null,2);const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:'application/json'}));a.download=(getBoard().name||'board')+'.json';a.click();closeDropdowns();});
+            document.querySelector('#dropdown-file .dropdown-item[data-action="import"]').addEventListener('click',()=>{importFileInput.click();closeDropdowns();});
+            importFileInput.addEventListener('change',(e)=>{const file=e.target.files[0];if(!file) return;const reader=new FileReader();reader.onload=(ev)=>{try{const data=JSON.parse(ev.target.result);if(!data.notes||!Array.isArray(data.notes)) throw new Error();if(boards.length>=5){showToast('Max 5 boards');return;}data.id=Date.now().toString();data.name=data.name||'Imported';data.noteIdCounter=data.noteIdCounter||0;data.connections=data.connections||[];const maxZ=Math.max(...data.notes.map(n=>n.zIndex||10),10);globalZCounter=Math.max(globalZCounter,maxZ);boards.push(data);switchToBoard(boards.length-1);renderBoardTabs();showToast('Board imported');}catch(ex){showToast('Invalid file');}};reader.readAsText(file);importFileInput.value='';});
+            document.querySelector('#dropdown-file .dropdown-item[data-action="delete-board"]').addEventListener('click',()=>{if(boards.length<=1){showToast('Cannot delete last board');return;}boards.splice(activeBoardIdx,1);if(activeBoardIdx>=boards.length) activeBoardIdx=boards.length-1;currentBoard=getBoard();viewX=currentBoard.viewX;viewY=currentBoard.viewY;zoom=currentBoard.zoom;renderAllNotes();updateTransform(false);renderBoardTabs();closeDropdowns();});
+            const closeDropdowns=()=>document.querySelectorAll('.dropdown-panel').forEach(p=>p.classList.remove('show'));
+
+            document.querySelector('[data-action="go-center"]').addEventListener('click',()=>{const rect=boardContainer.getBoundingClientRect();const targetZoom=Math.min(Math.max(zoom,0.5),1.5);const newViewX=rect.width/2-BOARD_CENTER*targetZoom,newViewY=rect.height/2-BOARD_CENTER*targetZoom;const startX=viewX,startY=viewY,startZoom=zoom;const startTime=performance.now();const step=(now)=>{const p=Math.min((now-startTime)/600,1);const e=1-Math.pow(1-p,3);viewX=startX+(newViewX-startX)*e;viewY=startY+(newViewY-startY)*e;zoom=startZoom+(targetZoom-startZoom)*e;updateTransform(false);if(p<1) requestAnimationFrame(step);else{viewX=newViewX;viewY=newViewY;zoom=targetZoom;updateTransform(false);}};requestAnimationFrame(step);play('return');showToast('Centered on board');closeDropdowns();});
+
+            const switchToBoard=(idx)=>{if(idx===activeBoardIdx) return;getBoard().viewX=viewX;getBoard().viewY=viewY;getBoard().zoom=zoom;activeBoardIdx=idx;const board=getBoard();viewX=board.viewX||0;viewY=board.viewY||0;zoom=board.zoom||1;renderAllNotes();updateTransform(false);renderBoardTabs();updateReturnBtn();closeAllPopups();};
+            const renderAllNotes=()=>{document.querySelectorAll('.sticky-note').forEach(n=>n.remove());while(connectionsSvg.firstChild) connectionsSvg.removeChild(connectionsSvg.firstChild);getBoard().notes.forEach(note=>renderNoteElement(note));updateAllConnections();};
+            const renderBoardTabs=()=>{boardTabsEl.innerHTML='';boards.forEach((b,i)=>{const tab=document.createElement('span');tab.className='board-tab'+(i===activeBoardIdx?' active':'');tab.innerHTML=`<span class="tab-name" contenteditable="false">${escapeHtml(b.name)}</span><button class="close-btn">${svgIcon('x',12)}</button>`;const ns=tab.querySelector('.tab-name'),cb=tab.querySelector('.close-btn');tab.addEventListener('click',(e)=>{if(e.target===cb||e.target.closest('.close-btn')) return;switchToBoard(i);});ns.addEventListener('dblclick',(e)=>{e.stopPropagation();ns.contentEditable='true';ns.focus();});ns.addEventListener('blur',()=>{ns.contentEditable='false';b.name=ns.textContent.trim()||b.name;save();renderBoardTabs();});ns.addEventListener('keydown',(e)=>{if(e.key==='Enter'){e.preventDefault();ns.blur();}});cb.addEventListener('click',(e)=>{e.stopPropagation();if(boards.length<=1){showToast('Cannot delete last board');return;}boards.splice(i,1);if(activeBoardIdx>=boards.length) activeBoardIdx=boards.length-1;currentBoard=getBoard();viewX=currentBoard.viewX;viewY=currentBoard.viewY;zoom=currentBoard.zoom;renderAllNotes();updateTransform(false);renderBoardTabs();updateReturnBtn();});boardTabsEl.appendChild(tab);});};
+
+            const onNoteMouseDown=(e,noteId)=>{if(e.button!==0) return;if(e.target.closest('textarea')||e.target.closest('.star-btn')) return;if(connectingFromId){if(connectingFromId!==noteId){addConnection(connectingFromId,noteId);clearHighlights();connectingFromId=null;showToast('Connected!');play('pop');}else{clearHighlights();connectingFromId=null;showToast('Cancelled');}return;}e.preventDefault();e.stopPropagation();potentialClickNoteId=noteId;clickStartX=e.clientX;clickStartY=e.clientY;const note=getBoard().notes.find(n=>n.id===noteId);if(note){dragNoteOrigX=note.x;dragNoteOrigY=note.y;}dragStartX=e.clientX;dragStartY=e.clientY;};
+            const onNoteTouchStart=(e,noteId)=>{if(e.target.closest('textarea')||e.target.closest('.star-btn')) return;if(connectingFromId){if(connectingFromId!==noteId){e.preventDefault();addConnection(connectingFromId,noteId);clearHighlights();connectingFromId=null;}else{e.preventDefault();clearHighlights();connectingFromId=null;}return;}const t=e.touches[0];potentialClickNoteId=noteId;clickStartX=t.clientX;clickStartY=t.clientY;const note=getBoard().notes.find(n=>n.id===noteId);if(note){dragNoteOrigX=note.x;dragNoteOrigY=note.y;}dragStartX=t.clientX;dragStartY=t.clientY;touchMoved=false;};
+            const clearHighlights=()=>document.querySelectorAll('.connecting-highlight').forEach(el=>el.classList.remove('connecting-highlight'));
+
+            window.addEventListener('mousemove',(e)=>{if(isDraggingNote&&dragNoteId){const dx=(e.clientX-dragStartX)/zoom,dy=(e.clientY-dragStartY)/zoom;const note=getBoard().notes.find(n=>n.id===dragNoteId);if(note){note.x=dragNoteOrigX+dx;note.y=dragNoteOrigY+dy;updateNoteElement(note);updateAllConnections();}}else if(isPanning){viewX=panStartViewX+(e.clientX-panStartMouseX);viewY=panStartViewY+(e.clientY-panStartMouseY);updateTransform(false);}else if(potentialClickNoteId){if(Math.hypot(e.clientX-clickStartX,e.clientY-clickStartY)>DRAG_THRESHOLD){isDraggingNote=true;dragNoteId=potentialClickNoteId;potentialClickNoteId=null;document.querySelector(`[data-note-id="${dragNoteId}"]`)?.classList.add('dragging');closeAllPopups();}}});
+            window.addEventListener('mouseup',()=>{if(isDraggingNote){document.querySelector(`[data-note-id="${dragNoteId}"]`)?.classList.remove('dragging');isDraggingNote=false;dragNoteId=null;updateAllConnections();save();}else if(potentialClickNoteId){const nid=potentialClickNoteId;potentialClickNoteId=null;showCustomizationPopup(nid);}if(isPanning){document.body.classList.remove('panning');isPanning=false;}});
+            window.addEventListener('touchmove',(e)=>{if(e.touches.length===2&&pinchStartDist>0){e.preventDefault();const t1=e.touches[0],t2=e.touches[1];const dist=Math.hypot(t2.clientX-t1.clientX,t2.clientY-t1.clientY);const scale=dist/pinchStartDist;const newZoom=Math.min(MAX_ZOOM,Math.max(MIN_ZOOM,pinchStartZoom*scale));const rect=boardContainer.getBoundingClientRect();const mx=(t1.clientX+t2.clientX)/2,my=(t1.clientY+t2.clientY)/2;viewX=mx-rect.left-((mx-rect.left-pinchStartViewX)/pinchStartZoom)*newZoom;viewY=my-rect.top-((my-rect.top-pinchStartViewY)/pinchStartZoom)*newZoom;zoom=newZoom;updateTransform(false);return;}if(isDraggingNote&&dragNoteId&&e.touches.length===1){const t=e.touches[0];touchMoved=true;const note=getBoard().notes.find(n=>n.id===dragNoteId);if(note){note.x=dragNoteOrigX+(t.clientX-dragStartX)/zoom;note.y=dragNoteOrigY+(t.clientY-dragStartY)/zoom;updateNoteElement(note);updateAllConnections();}}else if(isPanning&&e.touches.length===1){touchMoved=true;const t=e.touches[0];viewX=panStartViewX+(t.clientX-panStartMouseX);viewY=panStartViewY+(t.clientY-panStartMouseY);updateTransform(false);}else if(potentialClickNoteId&&e.touches.length===1){const t=e.touches[0];if(Math.hypot(t.clientX-clickStartX,t.clientY-clickStartY)>DRAG_THRESHOLD){touchMoved=true;isDraggingNote=true;dragNoteId=potentialClickNoteId;potentialClickNoteId=null;document.querySelector(`[data-note-id="${dragNoteId}"]`)?.classList.add('dragging');closeAllPopups();}}},{passive:false});
+            window.addEventListener('touchend',()=>{if(isDraggingNote){document.querySelector(`[data-note-id="${dragNoteId}"]`)?.classList.remove('dragging');isDraggingNote=false;dragNoteId=null;updateAllConnections();save();}else if(potentialClickNoteId&&!touchMoved){const nid=potentialClickNoteId;potentialClickNoteId=null;showCustomizationPopup(nid);}else potentialClickNoteId=null;if(isPanning){document.body.classList.remove('panning');isPanning=false;}pinchStartDist=0;});
+            boardContainer.addEventListener('mousedown',(e)=>{if(e.target.closest('.sticky-note')||e.target.closest('.context-menu')||e.target.closest('.customization-popup')||e.target.closest('.conn-customization-popup')||e.target.closest('.modal-overlay')) return;if(e.button===0){isPanning=true;panStartMouseX=e.clientX;panStartMouseY=e.clientY;panStartViewX=viewX;panStartViewY=viewY;document.body.classList.add('panning');closeAllPopups();if(connectingFromId){clearHighlights();connectingFromId=null;}}});
+            boardContainer.addEventListener('touchstart',(e)=>{if(e.target.closest('.sticky-note')||e.target.closest('.context-menu')||e.target.closest('.customization-popup')||e.target.closest('.conn-customization-popup')||e.target.closest('.modal-overlay')) return;if(e.touches.length===1){const t=e.touches[0];isPanning=true;panStartMouseX=t.clientX;panStartMouseY=t.clientY;panStartViewX=viewX;panStartViewY=viewY;touchMoved=false;document.body.classList.add('panning');closeAllPopups();}else if(e.touches.length===2){isPanning=false;const t1=e.touches[0],t2=e.touches[1];pinchStartDist=Math.hypot(t2.clientX-t1.clientX,t2.clientY-t1.clientY);pinchStartZoom=zoom;pinchStartViewX=viewX;pinchStartViewY=viewY;}},{passive:false});
+            boardContainer.addEventListener('contextmenu',(e)=>{if(e.target.closest('.sticky-note')||e.target.closest('.conn-path')) return;e.preventDefault();showContextMenu(e.clientX,e.clientY,null);});
+            const onNoteContextMenu=(e,noteId)=>{e.preventDefault();e.stopPropagation();showContextMenu(e.clientX,e.clientY,noteId);};
+            boardContainer.addEventListener('wheel',(e)=>{e.preventDefault();const rect=boardContainer.getBoundingClientRect();const mx=e.clientX-rect.left,my=e.clientY-rect.top;const bx=(mx-viewX)/zoom,by=(my-viewY)/zoom;const factor=e.deltaY<0?1.08:1/1.08;const newZoom=Math.min(MAX_ZOOM,Math.max(MIN_ZOOM,zoom*factor));viewX=mx-bx*newZoom;viewY=my-by*newZoom;zoom=newZoom;updateTransform(false);},{passive:false});
+            window.addEventListener('keydown',(e)=>{if(e.key==='Escape'){clearHighlights();connectingFromId=null;closeAllPopups();}});
+
+            const load=()=>{try{const raw=localStorage.getItem('boardsData');if(raw) boards=JSON.parse(raw);}catch(e){}if(!boards||boards.length===0) boards=[{id:Date.now().toString(),name:'Board 1',notes:[],noteIdCounter:0,connections:[],viewX:0,viewY:0,zoom:1}];boards.forEach(b=>{b.notes=b.notes||[];b.noteIdCounter=b.noteIdCounter||0;b.connections=b.connections||[];b.viewX=b.viewX||0;b.viewY=b.viewY||0;b.zoom=b.zoom||1;b.notes.forEach(n=>{n.fontSize=n.fontSize||1;n.direction=n.direction||'ltr';n.connections=n.connections||[];if(!n.tag) n.tag=generateTag();if(!n.zIndex) n.zIndex=10;});const maxZ=Math.max(...b.notes.map(n=>n.zIndex||10),10);globalZCounter=Math.max(globalZCounter,maxZ);});};
+            load();
+            activeBoardIdx=0;
+            const initBoard=getBoard();
+            if(initBoard.notes.length===0){const containerRect=boardContainer.getBoundingClientRect();viewX=containerRect.width/2-BOARD_CENTER*zoom;viewY=containerRect.height/2-BOARD_CENTER*zoom;const n1=createNote(BOARD_CENTER-120,BOARD_CENTER-100,'Hello! 👋','yellow');const n2=createNote(BOARD_CENTER+160,BOARD_CENTER-80,'Tips','blue');addConnection(n1.id,n2.id);}else{viewX=initBoard.viewX;viewY=initBoard.viewY;zoom=initBoard.zoom;}
+            renderAllNotes();updateTransform(false);renderBoardTabs();updateReturnBtn();
+            window.addEventListener('resize',()=>{updateAllConnections();updateTransform(false);});
+            console.log('✅ Disconnect submenu now opens as expandable list inside the context menu.');
+        })();
+    </script>
+</body>
+</html>
