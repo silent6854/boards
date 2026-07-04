@@ -13,7 +13,7 @@ The Licensor grants you a non-exclusive, non-transferable right to use the Softw
 3. INTELLECTUAL PROPERTY & COPYRIGHT
 Source Code Protection: The HTML, CSS (including the specific glassmorphism theme and custom variables), and JavaScript logic (specifically the connection pathing, z-order management, and board synchronization) are the exclusive intellectual property of the Licensor.
 Moral Rights: In accordance with Article 4 of the Iranian Software Protection Law, the Licensor’s moral rights (including the right to be named as the creator) are permanent and non-transferable.
-Proprietary Notices: You must not remove or obscure the proprietary comments (e.g., <!-- Nokhbe Math Game - Proprietary/Confidential -->) located at the top of the file or within the UI.
+Proprietary Notices: You must not remove or obscure the proprietary comments (e.g., <!-- Boards | Online Brainstorming Prgram - Proprietary/Confidential -->) located at the top of the file or within the UI.
 4. STRICT RESTRICTIONS
 The Licensee is expressly prohibited from:
 
