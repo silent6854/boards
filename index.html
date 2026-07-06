@@ -106,16 +106,18 @@ or commercial use is prohibited.
         #board-container:active { cursor:grabbing; }
         #board {
             position:absolute; width:10000px; height:10000px;
-            transform-origin:0 0; will-change:transform;
+            transform-origin:0 0;
+            will-change: transform;
             background:radial-gradient(circle at 15px 15px, rgba(255,255,255,0.04) 1px, transparent 1px),
                         radial-gradient(circle at 45px 45px, rgba(255,255,255,0.02) 0.8px, transparent 0.8px);
             background-size:60px 60px,60px 60px;
-            transition:transform 0.6s cubic-bezier(0.34,1.56,0.64,1);
+            transition: transform 0.6s cubic-bezier(0.34,1.56,0.64,1);
         }
         #board.no-transition { transition:none; }
         #connections-svg {
             position:absolute; left:0; top:0; width:10000px; height:10000px;
             pointer-events:none; z-index:2;
+            will-change: transform;
         }
         #connections-svg path.conn-path {
             pointer-events:stroke; cursor:pointer; stroke-linecap:round; fill:none;
@@ -126,7 +128,8 @@ or commercial use is prohibited.
             position:absolute; min-width:180px; max-width:380px; min-height:120px;
             border-radius:8px 8px 6px 6px; box-shadow:var(--note-shadow);
             cursor:grab; z-index:10; display:flex; flex-direction:column;
-            transition:box-shadow 0.2s, z-index 0.15s; will-change:left,top;
+            transition:box-shadow 0.2s, z-index 0.15s;
+            will-change: left, top, transform;
             animation:noteAppear 0.4s cubic-bezier(0.34,1.56,0.64,1); color:var(--text-dark);
         }
         .sticky-note:hover { box-shadow:4px 8px 28px rgba(0,0,0,0.4); }
@@ -187,7 +190,6 @@ or commercial use is prohibited.
         .context-menu-item svg { stroke:currentColor; fill:none; stroke-width:2; }
         .context-menu-item.danger { color:#f87171; }
         .context-menu-item.danger:hover { background:rgba(248,113,113,0.15); }
-        /* expandable disconnect submenu */
         .disconnect-submenu-wrapper {
             padding-left: 20px;
             overflow:hidden;
@@ -395,16 +397,13 @@ or commercial use is prohibited.
         </div>
     </div>
 
-    <!-- Context Menu with expandable Disconnect submenu -->
     <div class="context-menu" id="context-menu">
         <div class="context-menu-item" data-action="add-note"><svg width="20" height="20"><use href="#icon-plus"/></svg> Add Note</div>
         <div class="context-menu-item" data-action="connect"><svg width="20" height="20"><use href="#icon-link"/></svg> Connect to Another</div>
         <div class="context-menu-item has-arrow" id="disconnect-main-item">
             <svg width="20" height="20"><use href="#icon-unlink"/></svg> Disconnect...
         </div>
-        <div class="disconnect-submenu-wrapper" id="disconnect-submenu-wrapper">
-            <!-- populated dynamically -->
-        </div>
+        <div class="disconnect-submenu-wrapper" id="disconnect-submenu-wrapper"></div>
         <div class="context-menu-item danger" data-action="disconnect-all"><svg width="20" height="20"><use href="#icon-x"/></svg> Remove All Connections</div>
         <div class="dropdown-divider"></div>
         <div class="context-menu-item danger" data-action="delete-note"><svg width="20" height="20"><use href="#icon-trash"/></svg> Delete Note</div>
@@ -501,22 +500,22 @@ or commercial use is prohibited.
     </div>
     <div class="modal-overlay" id="about-modal">
         <button class="close-modal"><svg width="20" height="20" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-x"/></svg></button>
-        <h2>About & Contact Us</h2>
+        <h2>ℹ️ About</h2>
         <p><strong>Boards | Online Brainstorming Program</strong></p>
         <p>Version 1.0.0</p>
         <p>Developed by <strong>Abolfazl Fazeli</strong></p>
         <p>📧 <a href="mailto:abolfazlfazelimahsayeh@gmail.com" style="color:var(--accent)">abolfazlfazelimahsayeh@gmail.com</a></p>
-        <p>(Copyright (c) 2026 Abolfazl Fazeli All Rights Reserved)</p>
+        <p>( All Rights Reserved For Abolfazl Fazeli Copyright (c) 2026 )</p>
     </div>
     <div class="modal-overlay" id="search-modal">
         <button class="close-modal"><svg width="20" height="20" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-x"/></svg></button>
-        <h2>Search Notes</h2>
+        <h2>🔍 Search Notes</h2>
         <input type="text" id="search-input" placeholder="Search by title, tag (#xxxx), or content..." style="width:100%; padding:12px 16px; border-radius:12px; border:1px solid var(--popup-border); background:rgba(0,0,0,0.2); color:var(--text); margin-bottom:16px; font-size:0.95rem;">
         <div id="search-results"></div>
     </div>
     <div class="modal-overlay" id="stats-modal">
         <button class="close-modal"><svg width="20" height="20" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-x"/></svg></button>
-        <h2>Board Summary</h2>
+        <h2>📊 Board Summary</h2>
         <div id="stats-content"></div>
     </div>
 
@@ -590,7 +589,104 @@ or commercial use is prohibited.
             const getBoard=()=>boards[activeBoardIdx];
             const save=()=>{try{localStorage.setItem('boardsData',JSON.stringify(boards));}catch(e){}};
 
-            const updateTransform=(animate=false)=>{ boardEl.classList.toggle('no-transition',!animate); boardEl.style.transform=`translate(${viewX}px,${viewY}px) scale(${zoom})`; updateAllConnections(); };
+            // ─── rAF tick for board transform ──────────
+            let rafPending = false;
+            function scheduleBoardUpdate() {
+                if (!rafPending) {
+                    rafPending = true;
+                    requestAnimationFrame(() => {
+                        rafPending = false;
+                        // update the transform without redrawing connections (pan/zoom only)
+                        boardEl.classList.add('no-transition');
+                        boardEl.style.transform = `translate3d(${viewX}px, ${viewY}px, 0) scale(${zoom})`;
+                    });
+                }
+            }
+
+            // Replace the old updateTransform with a version that does NOT call updateAllConnections
+            function updateTransform(animate = false) {
+                boardEl.classList.toggle('no-transition', !animate);
+                boardEl.style.transform = `translate3d(${viewX}px, ${viewY}px, 0) scale(${zoom})`;
+                // Connections are now updated separately only when needed
+            }
+
+            // Selective connection update for a single note
+            function updateConnectionsForNote(noteId) {
+                const board = getBoard();
+                const note = board.notes.find(n => n.id === noteId);
+                if (!note) return;
+                // Remove old paths for this note's connections
+                note.connections.forEach(connId => {
+                    const existing = connectionsSvg.querySelector(`path[data-conn-id="${connId}"]`);
+                    if (existing) existing.remove();
+                });
+                // Redraw each connection
+                note.connections.forEach(connId => {
+                    const conn = (board.connections || []).find(c => c.id === connId);
+                    if (!conn) return;
+                    const otherNote = board.notes.find(n => n.id === (conn.fromNoteId === noteId ? conn.toNoteId : conn.fromNoteId));
+                    if (!otherNote) return;
+                    const n1 = note, n2 = otherNote;
+                    const x1 = n1.x + n1.sizeScale * 110, y1 = n1.y + n1.sizeScale * 70;
+                    const x2 = n2.x + n2.sizeScale * 110, y2 = n2.y + n2.sizeScale * 70;
+                    const midX = (x1 + x2) / 2, midY = (y1 + y2) / 2;
+                    const dx = x2 - x1, dy = y2 - y1, dist = Math.sqrt(dx * dx + dy * dy) || 1;
+                    const curveOffset = Math.min(dist * 0.25, 120);
+                    const cx = midX - dy / dist * curveOffset, cy = midY + dx / dist * curveOffset;
+                    const createPath = (d) => {
+                        const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                        p.setAttribute('d', d);
+                        p.setAttribute('data-conn-id', conn.id);
+                        p.classList.add('conn-path');
+                        p.style.stroke = conn.color || '#a5b4fc';
+                        if (conn.type.includes('dashed')) p.style.strokeDasharray = '8,6';
+                        p.addEventListener('contextmenu', (e) => { e.preventDefault(); e.stopPropagation(); showConnCustomizationPopup(e.clientX, e.clientY, conn.id); });
+                        connectionsSvg.appendChild(p);
+                    };
+                    if (conn.type === 'straight' || conn.type === 'straight-dashed') createPath(`M ${x1} ${y1} L ${x2} ${y2}`);
+                    else if (conn.type === 'curved-dashed' || conn.type === 'curved') createPath(`M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`);
+                    else if (conn.type === 'wavy') createPath(buildWavyPath(x1, y1, x2, y2));
+                    else if (conn.type === 'parallel-2' || conn.type === 'parallel-3') {
+                        const count = conn.type === 'parallel-2' ? 2 : 3;
+                        buildParallelPath(x1, y1, x2, y2, count).forEach(d => createPath(d));
+                    } else createPath(`M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`);
+                });
+            }
+
+            // Full connection rebuild (used only on structural changes)
+            function updateAllConnections() {
+                while (connectionsSvg.firstChild) connectionsSvg.removeChild(connectionsSvg.firstChild);
+                const board = getBoard();
+                if (!board.connections) board.connections = [];
+                board.connections.forEach(conn => {
+                    const n1 = board.notes.find(n => n.id === conn.fromNoteId), n2 = board.notes.find(n => n.id === conn.toNoteId);
+                    if (!n1 || !n2) return;
+                    const x1 = n1.x + n1.sizeScale * 110, y1 = n1.y + n1.sizeScale * 70;
+                    const x2 = n2.x + n2.sizeScale * 110, y2 = n2.y + n2.sizeScale * 70;
+                    const midX = (x1 + x2) / 2, midY = (y1 + y2) / 2;
+                    const dx = x2 - x1, dy = y2 - y1, dist = Math.sqrt(dx * dx + dy * dy) || 1;
+                    const curveOffset = Math.min(dist * 0.25, 120);
+                    const cx = midX - dy / dist * curveOffset, cy = midY + dx / dist * curveOffset;
+                    const createPath = (d) => {
+                        const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                        p.setAttribute('d', d);
+                        p.setAttribute('data-conn-id', conn.id);
+                        p.classList.add('conn-path');
+                        p.style.stroke = conn.color || '#a5b4fc';
+                        if (conn.type.includes('dashed')) p.style.strokeDasharray = '8,6';
+                        p.addEventListener('contextmenu', (e) => { e.preventDefault(); e.stopPropagation(); showConnCustomizationPopup(e.clientX, e.clientY, conn.id); });
+                        connectionsSvg.appendChild(p);
+                    };
+                    if (conn.type === 'straight' || conn.type === 'straight-dashed') createPath(`M ${x1} ${y1} L ${x2} ${y2}`);
+                    else if (conn.type === 'curved-dashed' || conn.type === 'curved') createPath(`M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`);
+                    else if (conn.type === 'wavy') createPath(buildWavyPath(x1, y1, x2, y2));
+                    else if (conn.type === 'parallel-2' || conn.type === 'parallel-3') {
+                        const count = conn.type === 'parallel-2' ? 2 : 3;
+                        buildParallelPath(x1, y1, x2, y2, count).forEach(d => createPath(d));
+                    } else createPath(`M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`);
+                });
+            }
+
             const screenToBoard=(sx,sy)=>{const r=boardContainer.getBoundingClientRect();return{x:(sx-r.left-viewX)/zoom,y:(sy-r.top-viewY)/zoom};};
             const boardToScreen=(bx,by)=>{const r=boardContainer.getBoundingClientRect();return{x:bx*zoom+viewX+r.left,y:by*zoom+viewY+r.top};};
 
@@ -686,8 +782,6 @@ or commercial use is prohibited.
             const buildWavyPath=(x1,y1,x2,y2)=>{const dx=x2-x1,dy=y2-y1,dist=Math.sqrt(dx*dx+dy*dy)||1;const perpX=-dy/dist,perpY=dx/dist;const amplitude=Math.min(dist*0.08,30);let d=`M ${x1} ${y1}`;for(let i=1;i<=8;i++){const t=i/8;const px=x1+dx*t,py=y1+dy*t;const wave=Math.sin(t*Math.PI*4)*amplitude;d+=` Q ${px+perpX*wave*0.5} ${py+perpY*wave*0.5} ${px} ${py}`;} return d;};
             const buildParallelPath=(x1,y1,x2,y2,count)=>{const dx=x2-x1,dy=y2-y1,dist=Math.sqrt(dx*dx+dy*dy)||1;const perpX=-dy/dist,perpY=dx/dist;const spacing=6;const offsets=count===2?[-spacing/2,spacing/2]:[-spacing,0,spacing];const midX=(x1+x2)/2,midY=(y1+y2)/2;const cx=midX+perpX*Math.min(dist*0.25,120),cy=midY+perpY*Math.min(dist*0.25,120);return offsets.map(off=>`M ${x1+perpX*off} ${y1+perpY*off} Q ${cx+perpX*off} ${cy+perpY*off} ${x2+perpX*off} ${y2+perpY*off}`);};
 
-            const updateAllConnections=()=>{while(connectionsSvg.firstChild) connectionsSvg.removeChild(connectionsSvg.firstChild);const board=getBoard();if(!board.connections) board.connections=[];board.connections.forEach(conn=>{const n1=board.notes.find(n=>n.id===conn.fromNoteId),n2=board.notes.find(n=>n.id===conn.toNoteId);if(!n1||!n2) return;const x1=n1.x+n1.sizeScale*110,y1=n1.y+n1.sizeScale*70;const x2=n2.x+n2.sizeScale*110,y2=n2.y+n2.sizeScale*70;const midX=(x1+x2)/2,midY=(y1+y2)/2;const dx=x2-x1,dy=y2-y1,dist=Math.sqrt(dx*dx+dy*dy)||1;const curveOffset=Math.min(dist*0.25,120);const cx=midX-dy/dist*curveOffset,cy=midY+dx/dist*curveOffset;const createPath=(d)=>{const p=document.createElementNS('http://www.w3.org/2000/svg','path');p.setAttribute('d',d);p.setAttribute('data-conn-id',conn.id);p.classList.add('conn-path');p.style.stroke=conn.color||'#a5b4fc';if(conn.type.includes('dashed')) p.style.strokeDasharray='8,6';p.addEventListener('contextmenu',(e)=>{e.preventDefault();e.stopPropagation();showConnCustomizationPopup(e.clientX,e.clientY,conn.id);});connectionsSvg.appendChild(p);};if(conn.type==='straight'||conn.type==='straight-dashed') createPath(`M ${x1} ${y1} L ${x2} ${y2}`);else if(conn.type==='curved-dashed'||conn.type==='curved') createPath(`M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`);else if(conn.type==='wavy') createPath(buildWavyPath(x1,y1,x2,y2));else if(conn.type==='parallel-2'||conn.type==='parallel-3'){const count=conn.type==='parallel-2'?2:3;buildParallelPath(x1,y1,x2,y2,count).forEach(d=>createPath(d));} else createPath(`M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`);});};
-
             const updateReturnBtn=()=>returnBtn.disabled=getBoard().notes.filter(n=>n.starred).length===0;
             const animateToNote=(note)=>{const rect=boardContainer.getBoundingClientRect();const tx=note.x+note.sizeScale*110,ty=note.y+note.sizeScale*70;const targetZoom=Math.min(Math.max(zoom,0.6),1.5);const newViewX=rect.width/2-tx*targetZoom,newViewY=rect.height/2-ty*targetZoom;const startX=viewX,startY=viewY,startZoom=zoom;const startTime=performance.now();const step=(now)=>{const p=Math.min((now-startTime)/600,1);const e=1-Math.pow(1-p,3);viewX=startX+(newViewX-startX)*e;viewY=startY+(newViewY-startY)*e;zoom=startZoom+(targetZoom-startZoom)*e;updateTransform(false);if(p<1) requestAnimationFrame(step);else{viewX=newViewX;viewY=newViewY;zoom=targetZoom;updateTransform(false);}};requestAnimationFrame(step);play('return');};
             const animateToNearestStarred=()=>{const board=getBoard();const starred=board.notes.filter(n=>n.starred);if(!starred.length){showToast('No starred notes');return;}const rect=boardContainer.getBoundingClientRect();const centerX=(rect.width/2-viewX)/zoom,centerY=(rect.height/2-viewY)/zoom;let closest=starred[0],minDist=Infinity;starred.forEach(n=>{const dx=(n.x+n.sizeScale*110)-centerX,dy=(n.y+n.sizeScale*70)-centerY;const d=dx*dx+dy*dy;if(d<minDist){minDist=d;closest=n;}});animateToNote(closest);showToast('Returning to nearest starred note');};
@@ -698,7 +792,6 @@ or commercial use is prohibited.
                 contextMenuTargetId=noteId;
                 contextMenu.style.left=Math.min(sx,innerWidth-250)+'px';
                 contextMenu.style.top=Math.min(sy,innerHeight-350)+'px';
-                // Reset disconnect submenu
                 disconnectSubmenuWrapper.classList.remove('expanded');
                 disconnectMainItem.classList.remove('expanded');
                 disconnectSubmenuWrapper.innerHTML = '';
@@ -715,13 +808,7 @@ or commercial use is prohibited.
                             const item=document.createElement('div');
                             item.className='disconnect-submenu-item';
                             item.innerHTML=`<svg width="14" height="14"><use href="#icon-unlink"/></svg> ${escapeHtml(other.title||'Note')} <span style="opacity:0.5;font-size:0.7rem;margin-left:auto;">${other.tag||''}</span>`;
-                            item.addEventListener('click',(e)=>{
-                                e.stopPropagation();
-                                removeConnection(cid);
-                                hideContextMenu();
-                                showToast('Connection removed');
-                                play('pop');
-                            });
+                            item.addEventListener('click',(e)=>{e.stopPropagation();removeConnection(cid);hideContextMenu();showToast('Connection removed');play('pop');});
                             disconnectSubmenuWrapper.appendChild(item);
                         });
                     }else{
@@ -734,13 +821,8 @@ or commercial use is prohibited.
                 }
                 contextMenu.classList.add('active');play('click');
             };
-            const hideContextMenu=()=>{
-                contextMenu.classList.remove('active');
-                disconnectSubmenuWrapper.classList.remove('expanded');
-                disconnectMainItem.classList.remove('expanded');
-            };
+            const hideContextMenu=()=>{contextMenu.classList.remove('active');disconnectSubmenuWrapper.classList.remove('expanded');disconnectMainItem.classList.remove('expanded');};
 
-            // Toggle disconnect submenu
             disconnectMainItem.addEventListener('click',(e)=>{
                 e.stopPropagation();
                 const isExpanded = disconnectSubmenuWrapper.classList.contains('expanded');
@@ -785,7 +867,7 @@ or commercial use is prohibited.
             contextMenu.addEventListener('click',(e)=>{
                 const item=e.target.closest('.context-menu-item');
                 if(!item) return;
-                if(item === disconnectMainItem) return; // handled separately
+                if(item === disconnectMainItem) return;
                 const action=item.dataset.action;
                 if(action==='add-note'){const bp=screenToBoard(contextMenu.getBoundingClientRect().left+120,contextMenu.getBoundingClientRect().top+140);createNote(bp.x-110,bp.y-70);showToast('Note added');play('pop');}
                 else if(action==='connect'&&contextMenuTargetId){connectingFromId=contextMenuTargetId;document.querySelector(`[data-note-id="${contextMenuTargetId}"]`)?.classList.add('connecting-highlight');showToast('Click another note to connect');}
@@ -798,7 +880,7 @@ or commercial use is prohibited.
             popupTitle.addEventListener('input',()=>{if(customizationTargetId){const note=getBoard().notes.find(n=>n.id===customizationTargetId);if(note){note.title=popupTitle.value||'Untitled';updateNoteElement(note);save();}}});
             popupFont.addEventListener('change',()=>{if(customizationTargetId){const note=getBoard().notes.find(n=>n.id===customizationTargetId);if(note){note.font=popupFont.value;updateNoteElement(note);save();}}});
             popupDirection.addEventListener('change',()=>{if(customizationTargetId){const note=getBoard().notes.find(n=>n.id===customizationTargetId);if(note){note.direction=popupDirection.value;updateNoteElement(note);save();}}});
-            popupSize.addEventListener('input',()=>{const val=parseFloat(popupSize.value);sizeLabel.textContent=val<0.8?'Small':val<1.2?'Medium':val<1.6?'Large':'XL';if(customizationTargetId){const note=getBoard().notes.find(n=>n.id===customizationTargetId);if(note){note.sizeScale=val;updateNoteElement(note);updateAllConnections();save();}}});
+            popupSize.addEventListener('input',()=>{const val=parseFloat(popupSize.value);sizeLabel.textContent=val<0.8?'Small':val<1.2?'Medium':val<1.6?'Large':'XL';if(customizationTargetId){const note=getBoard().notes.find(n=>n.id===customizationTargetId);if(note){note.sizeScale=val;updateNoteElement(note);updateConnectionsForNote(note.id);save();}}});
             popupFontSize.addEventListener('input',()=>{const val=parseFloat(popupFontSize.value);fontsizeLabel.textContent=val.toFixed(1)+'rem';if(customizationTargetId){const note=getBoard().notes.find(n=>n.id===customizationTargetId);if(note){note.fontSize=val;updateNoteElement(note);save();}}});
             colorSwatches.addEventListener('click',(e)=>{const sw=e.target.closest('.color-swatch');if(!sw||!customizationTargetId) return;const note=getBoard().notes.find(n=>n.id===customizationTargetId);if(note){note.color=sw.dataset.color;updateNoteElement(note);colorSwatches.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('selected'));sw.classList.add('selected');save();}});
 
@@ -860,19 +942,141 @@ or commercial use is prohibited.
             const renderAllNotes=()=>{document.querySelectorAll('.sticky-note').forEach(n=>n.remove());while(connectionsSvg.firstChild) connectionsSvg.removeChild(connectionsSvg.firstChild);getBoard().notes.forEach(note=>renderNoteElement(note));updateAllConnections();};
             const renderBoardTabs=()=>{boardTabsEl.innerHTML='';boards.forEach((b,i)=>{const tab=document.createElement('span');tab.className='board-tab'+(i===activeBoardIdx?' active':'');tab.innerHTML=`<span class="tab-name" contenteditable="false">${escapeHtml(b.name)}</span><button class="close-btn">${svgIcon('x',12)}</button>`;const ns=tab.querySelector('.tab-name'),cb=tab.querySelector('.close-btn');tab.addEventListener('click',(e)=>{if(e.target===cb||e.target.closest('.close-btn')) return;switchToBoard(i);});ns.addEventListener('dblclick',(e)=>{e.stopPropagation();ns.contentEditable='true';ns.focus();});ns.addEventListener('blur',()=>{ns.contentEditable='false';b.name=ns.textContent.trim()||b.name;save();renderBoardTabs();});ns.addEventListener('keydown',(e)=>{if(e.key==='Enter'){e.preventDefault();ns.blur();}});cb.addEventListener('click',(e)=>{e.stopPropagation();if(boards.length<=1){showToast('Cannot delete last board');return;}boards.splice(i,1);if(activeBoardIdx>=boards.length) activeBoardIdx=boards.length-1;currentBoard=getBoard();viewX=currentBoard.viewX;viewY=currentBoard.viewY;zoom=currentBoard.zoom;renderAllNotes();updateTransform(false);renderBoardTabs();updateReturnBtn();});boardTabsEl.appendChild(tab);});};
 
+            // Interaction handlers – optimized for selective connection updates
             const onNoteMouseDown=(e,noteId)=>{if(e.button!==0) return;if(e.target.closest('textarea')||e.target.closest('.star-btn')) return;if(connectingFromId){if(connectingFromId!==noteId){addConnection(connectingFromId,noteId);clearHighlights();connectingFromId=null;showToast('Connected!');play('pop');}else{clearHighlights();connectingFromId=null;showToast('Cancelled');}return;}e.preventDefault();e.stopPropagation();potentialClickNoteId=noteId;clickStartX=e.clientX;clickStartY=e.clientY;const note=getBoard().notes.find(n=>n.id===noteId);if(note){dragNoteOrigX=note.x;dragNoteOrigY=note.y;}dragStartX=e.clientX;dragStartY=e.clientY;};
             const onNoteTouchStart=(e,noteId)=>{if(e.target.closest('textarea')||e.target.closest('.star-btn')) return;if(connectingFromId){if(connectingFromId!==noteId){e.preventDefault();addConnection(connectingFromId,noteId);clearHighlights();connectingFromId=null;}else{e.preventDefault();clearHighlights();connectingFromId=null;}return;}const t=e.touches[0];potentialClickNoteId=noteId;clickStartX=t.clientX;clickStartY=t.clientY;const note=getBoard().notes.find(n=>n.id===noteId);if(note){dragNoteOrigX=note.x;dragNoteOrigY=note.y;}dragStartX=t.clientX;dragStartY=t.clientY;touchMoved=false;};
             const clearHighlights=()=>document.querySelectorAll('.connecting-highlight').forEach(el=>el.classList.remove('connecting-highlight'));
 
-            window.addEventListener('mousemove',(e)=>{if(isDraggingNote&&dragNoteId){const dx=(e.clientX-dragStartX)/zoom,dy=(e.clientY-dragStartY)/zoom;const note=getBoard().notes.find(n=>n.id===dragNoteId);if(note){note.x=dragNoteOrigX+dx;note.y=dragNoteOrigY+dy;updateNoteElement(note);updateAllConnections();}}else if(isPanning){viewX=panStartViewX+(e.clientX-panStartMouseX);viewY=panStartViewY+(e.clientY-panStartMouseY);updateTransform(false);}else if(potentialClickNoteId){if(Math.hypot(e.clientX-clickStartX,e.clientY-clickStartY)>DRAG_THRESHOLD){isDraggingNote=true;dragNoteId=potentialClickNoteId;potentialClickNoteId=null;document.querySelector(`[data-note-id="${dragNoteId}"]`)?.classList.add('dragging');closeAllPopups();}}});
-            window.addEventListener('mouseup',()=>{if(isDraggingNote){document.querySelector(`[data-note-id="${dragNoteId}"]`)?.classList.remove('dragging');isDraggingNote=false;dragNoteId=null;updateAllConnections();save();}else if(potentialClickNoteId){const nid=potentialClickNoteId;potentialClickNoteId=null;showCustomizationPopup(nid);}if(isPanning){document.body.classList.remove('panning');isPanning=false;}});
-            window.addEventListener('touchmove',(e)=>{if(e.touches.length===2&&pinchStartDist>0){e.preventDefault();const t1=e.touches[0],t2=e.touches[1];const dist=Math.hypot(t2.clientX-t1.clientX,t2.clientY-t1.clientY);const scale=dist/pinchStartDist;const newZoom=Math.min(MAX_ZOOM,Math.max(MIN_ZOOM,pinchStartZoom*scale));const rect=boardContainer.getBoundingClientRect();const mx=(t1.clientX+t2.clientX)/2,my=(t1.clientY+t2.clientY)/2;viewX=mx-rect.left-((mx-rect.left-pinchStartViewX)/pinchStartZoom)*newZoom;viewY=my-rect.top-((my-rect.top-pinchStartViewY)/pinchStartZoom)*newZoom;zoom=newZoom;updateTransform(false);return;}if(isDraggingNote&&dragNoteId&&e.touches.length===1){const t=e.touches[0];touchMoved=true;const note=getBoard().notes.find(n=>n.id===dragNoteId);if(note){note.x=dragNoteOrigX+(t.clientX-dragStartX)/zoom;note.y=dragNoteOrigY+(t.clientY-dragStartY)/zoom;updateNoteElement(note);updateAllConnections();}}else if(isPanning&&e.touches.length===1){touchMoved=true;const t=e.touches[0];viewX=panStartViewX+(t.clientX-panStartMouseX);viewY=panStartViewY+(t.clientY-panStartMouseY);updateTransform(false);}else if(potentialClickNoteId&&e.touches.length===1){const t=e.touches[0];if(Math.hypot(t.clientX-clickStartX,t.clientY-clickStartY)>DRAG_THRESHOLD){touchMoved=true;isDraggingNote=true;dragNoteId=potentialClickNoteId;potentialClickNoteId=null;document.querySelector(`[data-note-id="${dragNoteId}"]`)?.classList.add('dragging');closeAllPopups();}}},{passive:false});
-            window.addEventListener('touchend',()=>{if(isDraggingNote){document.querySelector(`[data-note-id="${dragNoteId}"]`)?.classList.remove('dragging');isDraggingNote=false;dragNoteId=null;updateAllConnections();save();}else if(potentialClickNoteId&&!touchMoved){const nid=potentialClickNoteId;potentialClickNoteId=null;showCustomizationPopup(nid);}else potentialClickNoteId=null;if(isPanning){document.body.classList.remove('panning');isPanning=false;}pinchStartDist=0;});
-            boardContainer.addEventListener('mousedown',(e)=>{if(e.target.closest('.sticky-note')||e.target.closest('.context-menu')||e.target.closest('.customization-popup')||e.target.closest('.conn-customization-popup')||e.target.closest('.modal-overlay')) return;if(e.button===0){isPanning=true;panStartMouseX=e.clientX;panStartMouseY=e.clientY;panStartViewX=viewX;panStartViewY=viewY;document.body.classList.add('panning');closeAllPopups();if(connectingFromId){clearHighlights();connectingFromId=null;}}});
-            boardContainer.addEventListener('touchstart',(e)=>{if(e.target.closest('.sticky-note')||e.target.closest('.context-menu')||e.target.closest('.customization-popup')||e.target.closest('.conn-customization-popup')||e.target.closest('.modal-overlay')) return;if(e.touches.length===1){const t=e.touches[0];isPanning=true;panStartMouseX=t.clientX;panStartMouseY=t.clientY;panStartViewX=viewX;panStartViewY=viewY;touchMoved=false;document.body.classList.add('panning');closeAllPopups();}else if(e.touches.length===2){isPanning=false;const t1=e.touches[0],t2=e.touches[1];pinchStartDist=Math.hypot(t2.clientX-t1.clientX,t2.clientY-t1.clientY);pinchStartZoom=zoom;pinchStartViewX=viewX;pinchStartViewY=viewY;}},{passive:false});
+            window.addEventListener('mousemove',(e)=>{
+                if (isDraggingNote && dragNoteId) {
+                    const dx = (e.clientX - dragStartX) / zoom;
+                    const dy = (e.clientY - dragStartY) / zoom;
+                    const note = getBoard().notes.find(n => n.id === dragNoteId);
+                    if (note) {
+                        note.x = dragNoteOrigX + dx;
+                        note.y = dragNoteOrigY + dy;
+                        updateNoteElement(note);
+                        // Update only connections for this note
+                        updateConnectionsForNote(dragNoteId);
+                    }
+                } else if (isPanning) {
+                    viewX = panStartViewX + (e.clientX - panStartMouseX);
+                    viewY = panStartViewY + (e.clientY - panStartMouseY);
+                    scheduleBoardUpdate(); // rAF-based update, no connection redraw
+                } else if (potentialClickNoteId) {
+                    if (Math.hypot(e.clientX - clickStartX, e.clientY - clickStartY) > DRAG_THRESHOLD) {
+                        isDraggingNote = true;
+                        dragNoteId = potentialClickNoteId;
+                        potentialClickNoteId = null;
+                        document.querySelector(`[data-note-id="${dragNoteId}"]`)?.classList.add('dragging');
+                        closeAllPopups();
+                    }
+                }
+            });
+            window.addEventListener('mouseup',()=>{
+                if (isDraggingNote) {
+                    document.querySelector(`[data-note-id="${dragNoteId}"]`)?.classList.remove('dragging');
+                    isDraggingNote = false;
+                    dragNoteId = null;
+                    // No need to update connections again, they are already up to date
+                    save();
+                } else if (potentialClickNoteId) {
+                    const nid = potentialClickNoteId;
+                    potentialClickNoteId = null;
+                    showCustomizationPopup(nid);
+                }
+                if (isPanning) {
+                    document.body.classList.remove('panning');
+                    isPanning = false;
+                }
+            });
+            window.addEventListener('touchmove',(e)=>{
+                if(e.touches.length===2&&pinchStartDist>0){
+                    e.preventDefault();
+                    const t1=e.touches[0],t2=e.touches[1];
+                    const dist=Math.hypot(t2.clientX-t1.clientX,t2.clientY-t1.clientY);
+                    const scale=dist/pinchStartDist;
+                    const newZoom=Math.min(MAX_ZOOM,Math.max(MIN_ZOOM,pinchStartZoom*scale));
+                    const rect=boardContainer.getBoundingClientRect();
+                    const mx=(t1.clientX+t2.clientX)/2,my=(t1.clientY+t2.clientY)/2;
+                    viewX=mx-rect.left-((mx-rect.left-pinchStartViewX)/pinchStartZoom)*newZoom;
+                    viewY=my-rect.top-((my-rect.top-pinchStartViewY)/pinchStartZoom)*newZoom;
+                    zoom=newZoom;
+                    scheduleBoardUpdate(); // rAF
+                    return;
+                }
+                if(isDraggingNote&&dragNoteId&&e.touches.length===1){
+                    const t=e.touches[0];touchMoved=true;
+                    const note=getBoard().notes.find(n=>n.id===dragNoteId);
+                    if(note){
+                        note.x=dragNoteOrigX+(t.clientX-dragStartX)/zoom;
+                        note.y=dragNoteOrigY+(t.clientY-dragStartY)/zoom;
+                        updateNoteElement(note);
+                        updateConnectionsForNote(dragNoteId);
+                    }
+                }else if(isPanning&&e.touches.length===1){
+                    touchMoved=true;const t=e.touches[0];
+                    viewX=panStartViewX+(t.clientX-panStartMouseX);
+                    viewY=panStartViewY+(t.clientY-panStartMouseY);
+                    scheduleBoardUpdate();
+                }else if(potentialClickNoteId&&e.touches.length===1){
+                    const t=e.touches[0];
+                    if(Math.hypot(t.clientX-clickStartX,t.clientY-clickStartY)>DRAG_THRESHOLD){
+                        touchMoved=true;isDraggingNote=true;dragNoteId=potentialClickNoteId;potentialClickNoteId=null;
+                        document.querySelector(`[data-note-id="${dragNoteId}"]`)?.classList.add('dragging');
+                        closeAllPopups();
+                    }
+                }
+            },{passive:false});
+            window.addEventListener('touchend',()=>{
+                if(isDraggingNote){
+                    document.querySelector(`[data-note-id="${dragNoteId}"]`)?.classList.remove('dragging');
+                    isDraggingNote=false;dragNoteId=null;
+                    save();
+                }else if(potentialClickNoteId&&!touchMoved){
+                    const nid=potentialClickNoteId;potentialClickNoteId=null;
+                    showCustomizationPopup(nid);
+                }else potentialClickNoteId=null;
+                if(isPanning){document.body.classList.remove('panning');isPanning=false;}
+                pinchStartDist=0;
+            });
+            boardContainer.addEventListener('mousedown',(e)=>{
+                if(e.target.closest('.sticky-note')||e.target.closest('.context-menu')||e.target.closest('.customization-popup')||e.target.closest('.conn-customization-popup')||e.target.closest('.modal-overlay')) return;
+                if(e.button===0){
+                    isPanning=true;panStartMouseX=e.clientX;panStartMouseY=e.clientY;
+                    panStartViewX=viewX;panStartViewY=viewY;
+                    document.body.classList.add('panning');closeAllPopups();
+                    if(connectingFromId){clearHighlights();connectingFromId=null;}
+                }
+            });
+            boardContainer.addEventListener('touchstart',(e)=>{
+                if(e.target.closest('.sticky-note')||e.target.closest('.context-menu')||e.target.closest('.customization-popup')||e.target.closest('.conn-customization-popup')||e.target.closest('.modal-overlay')) return;
+                if(e.touches.length===1){
+                    const t=e.touches[0];
+                    isPanning=true;panStartMouseX=t.clientX;panStartMouseY=t.clientY;
+                    panStartViewX=viewX;panStartViewY=viewY;
+                    touchMoved=false;document.body.classList.add('panning');closeAllPopups();
+                }else if(e.touches.length===2){
+                    isPanning=false;
+                    const t1=e.touches[0],t2=e.touches[1];
+                    pinchStartDist=Math.hypot(t2.clientX-t1.clientX,t2.clientY-t1.clientY);
+                    pinchStartZoom=zoom;pinchStartViewX=viewX;pinchStartViewY=viewY;
+                }
+            },{passive:false});
             boardContainer.addEventListener('contextmenu',(e)=>{if(e.target.closest('.sticky-note')||e.target.closest('.conn-path')) return;e.preventDefault();showContextMenu(e.clientX,e.clientY,null);});
             const onNoteContextMenu=(e,noteId)=>{e.preventDefault();e.stopPropagation();showContextMenu(e.clientX,e.clientY,noteId);};
-            boardContainer.addEventListener('wheel',(e)=>{e.preventDefault();const rect=boardContainer.getBoundingClientRect();const mx=e.clientX-rect.left,my=e.clientY-rect.top;const bx=(mx-viewX)/zoom,by=(my-viewY)/zoom;const factor=e.deltaY<0?1.08:1/1.08;const newZoom=Math.min(MAX_ZOOM,Math.max(MIN_ZOOM,zoom*factor));viewX=mx-bx*newZoom;viewY=my-by*newZoom;zoom=newZoom;updateTransform(false);},{passive:false});
+            boardContainer.addEventListener('wheel',(e)=>{
+                e.preventDefault();
+                const rect=boardContainer.getBoundingClientRect();
+                const mx=e.clientX-rect.left,my=e.clientY-rect.top;
+                const bx=(mx-viewX)/zoom,by=(my-viewY)/zoom;
+                const factor=e.deltaY<0?1.08:1/1.08;
+                const newZoom=Math.min(MAX_ZOOM,Math.max(MIN_ZOOM,zoom*factor));
+                viewX=mx-bx*newZoom;
+                viewY=my-by*newZoom;
+                zoom=newZoom;
+                scheduleBoardUpdate(); // rAF, no connection redraw
+            },{passive:false});
             window.addEventListener('keydown',(e)=>{if(e.key==='Escape'){clearHighlights();connectingFromId=null;closeAllPopups();}});
 
             const load=()=>{try{const raw=localStorage.getItem('boardsData');if(raw) boards=JSON.parse(raw);}catch(e){}if(!boards||boards.length===0) boards=[{id:Date.now().toString(),name:'Board 1',notes:[],noteIdCounter:0,connections:[],viewX:0,viewY:0,zoom:1}];boards.forEach(b=>{b.notes=b.notes||[];b.noteIdCounter=b.noteIdCounter||0;b.connections=b.connections||[];b.viewX=b.viewX||0;b.viewY=b.viewY||0;b.zoom=b.zoom||1;b.notes.forEach(n=>{n.fontSize=n.fontSize||1;n.direction=n.direction||'ltr';n.connections=n.connections||[];if(!n.tag) n.tag=generateTag();if(!n.zIndex) n.zIndex=10;});const maxZ=Math.max(...b.notes.map(n=>n.zIndex||10),10);globalZCounter=Math.max(globalZCounter,maxZ);});};
@@ -882,7 +1086,7 @@ or commercial use is prohibited.
             if(initBoard.notes.length===0){const containerRect=boardContainer.getBoundingClientRect();viewX=containerRect.width/2-BOARD_CENTER*zoom;viewY=containerRect.height/2-BOARD_CENTER*zoom;const n1=createNote(BOARD_CENTER-120,BOARD_CENTER-100,'Hello! 👋','yellow');const n2=createNote(BOARD_CENTER+160,BOARD_CENTER-80,'Tips','blue');addConnection(n1.id,n2.id);}else{viewX=initBoard.viewX;viewY=initBoard.viewY;zoom=initBoard.zoom;}
             renderAllNotes();updateTransform(false);renderBoardTabs();updateReturnBtn();
             window.addEventListener('resize',()=>{updateAllConnections();updateTransform(false);});
-            console.log('✅ Disconnect submenu now opens as expandable list inside the context menu.');
+            console.log('✅ Performance optimizations active – rAF pan/zoom, selective connection redraw, GPU transform.');
         })();
     </script>
 </body>
