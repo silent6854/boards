@@ -26,6 +26,8 @@ or commercial use is prohibited.
             --popup-border: rgba(255, 255, 255, 0.2);
             --accent: #818cf8;
             --gold: #f59e0b;
+            --green: #4ade80;
+            --red: #f87171;
             --note-shadow: 2px 4px 16px rgba(0,0,0,0.3);
             --transition: 0.25s cubic-bezier(0.4,0,0.2,1);
             --header-height: 52px;
@@ -142,14 +144,16 @@ or commercial use is prohibited.
             border-radius:8px 8px 0 0; cursor:grab; flex-shrink:0;
         }
         .note-title-text { font-weight:700; font-size:0.95rem; color:var(--text-dark); flex:1; margin-right:8px; }
-        .star-btn {
+        .star-btn, .like-btn, .dislike-btn {
             background:none; border:none; cursor:pointer; padding:2px;
             transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
             display:flex; align-items:center; color:var(--text-dark);
         }
-        .star-btn:active { transform:scale(1.5); }
-        .star-btn svg { width:20px; height:20px; stroke:currentColor; fill:none; stroke-width:2; }
+        .star-btn:active, .like-btn:active, .dislike-btn:active { transform:scale(1.4); }
+        .star-btn svg, .like-btn svg, .dislike-btn svg { width:20px; height:20px; stroke:currentColor; fill:none; stroke-width:2; }
         .sticky-note.starred .star-btn svg { fill:var(--gold); stroke:var(--gold); }
+        .sticky-note.liked .like-btn svg { fill:var(--green); stroke:var(--green); }
+        .sticky-note.disliked .dislike-btn svg { fill:var(--red); stroke:var(--red); }
         .note-body { flex:1; padding:4px 14px 12px; overflow:hidden; min-height:0; }
         .note-body textarea {
             width:100%; border:none; background:transparent; color:var(--text-dark); font-family:inherit;
@@ -239,7 +243,8 @@ or commercial use is prohibited.
         .context-menu-item.has-arrow.expanded::after {
             transform: rotate(90deg);
         }
-        .customization-popup, .conn-customization-popup { width:560px; padding:24px; }
+        .customization-popup { width:560px; padding:24px; }
+        .conn-customization-popup { width:360px; padding:20px; }
         .customization-popup h3, .conn-customization-popup h3 { margin:0 0 16px; font-size:1.1rem; display:flex; align-items:center; gap:8px; }
         .customization-popup label, .conn-customization-popup label {
             font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;
@@ -305,13 +310,13 @@ or commercial use is prohibited.
         }
         .modal-overlay .close-modal:hover { background:rgba(255,255,255,0.1); }
         .modal-overlay .close-modal svg { stroke:currentColor; fill:none; stroke-width:2; }
-        .search-result-item {
+        .search-result-item, .liked-disliked-item {
             padding:12px 16px; cursor:pointer; border-radius:10px; margin:4px 0;
             transition:all 0.2s; border:1px solid transparent; display:flex; align-items:center; gap:10px;
         }
-        .search-result-item:hover { background:rgba(255,255,255,0.1); border-color:rgba(255,255,255,0.2); padding-left:20px; }
-        .search-result-item .result-tag { font-size:0.75rem; opacity:0.7; background:rgba(255,255,255,0.1); padding:2px 8px; border-radius:6px; }
-        .search-result-item .result-preview { font-size:0.78rem; opacity:0.5; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:200px; }
+        .search-result-item:hover, .liked-disliked-item:hover { background:rgba(255,255,255,0.1); border-color:rgba(255,255,255,0.2); padding-left:20px; }
+        .liked-group { margin-bottom:20px; }
+        .liked-group h3 { font-size:1.2rem; margin-bottom:8px; display:flex; align-items:center; gap:10px; }
         #return-to-star-btn {
             position:fixed; bottom:28px; right:28px; z-index:9000;
             width:52px; height:52px; border-radius:50%; border:none;
@@ -335,6 +340,7 @@ or commercial use is prohibited.
             .customization-popup { width:90vw; }
             .popup-columns { flex-direction:column; }
             .popup-divider { display:none; }
+            .conn-customization-popup { width:90vw; }
         }
     </style>
 </head>
@@ -356,6 +362,11 @@ or commercial use is prohibited.
             <symbol id="icon-palette" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 0 0 20"/><circle cx="12" cy="12" r="3"/></symbol>
             <symbol id="icon-front" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><rect x="7" y="7" width="10" height="10" rx="2"/><line x1="12" y1="3" x2="12" y2="7"/></symbol>
             <symbol id="icon-back" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><rect x="7" y="7" width="10" height="10" rx="2"/><line x1="12" y1="17" x2="12" y2="21"/></symbol>
+            <symbol id="icon-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+            <symbol id="icon-paste" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></symbol>
+            <symbol id="icon-like" viewBox="0 0 24 24"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></symbol>
+            <symbol id="icon-dislike" viewBox="0 0 24 24"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3H10zM17 2h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3"/></symbol>
+            <symbol id="icon-thumbs" viewBox="0 0 24 24"><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3m7-2V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/><path d="M17 2h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3" transform="translate(0,24) scale(1,-1)"/></symbol>
         </defs>
     </svg>
 
@@ -365,8 +376,7 @@ or commercial use is prohibited.
             <button class="header-tab" data-dropdown="file">File</button>
             <button class="header-tab" data-dropdown="view">View</button>
             <button class="header-tab" data-dropdown="tools">Tools</button>
-            <button class="header-tab" data-dropdown="settings">Settings</button>
-            <button class="header-tab" id="tips-tab">Tips</button>
+            <button class="header-tab" id="help-tab">Help</button>
             <button class="header-tab" id="about-tab">About</button>
         </div>
         <button class="header-tab search-tab" id="search-tab"><svg width="18" height="18" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-search"/></svg> Search</button>
@@ -380,13 +390,12 @@ or commercial use is prohibited.
         <div class="dropdown-item danger" data-action="delete-board"><svg><use href="#icon-trash"/></svg> Delete Board</div>
     </div>
     <div class="dropdown-panel" id="dropdown-view">
-        <div class="dropdown-item" data-action="toggle-tags"><svg><use href="#icon-palette"/></svg> <span id="tags-toggle-text">Show Tags</span></div>
+        <div class="dropdown-item" data-action="toggle-tags"><svg><use href="#icon-palette"/></svg> Tags</div>
+        <div class="dropdown-item" data-action="board-summary"><svg><use href="#icon-info"/></svg> Board Summary</div>
+        <div class="dropdown-item" data-action="marked-notes"><svg><use href="#icon-thumbs"/></svg> Marked Notes</div>
     </div>
     <div class="dropdown-panel" id="dropdown-tools">
         <div class="dropdown-item" data-action="go-center"><svg><use href="#icon-crosshair"/></svg> Go to Board Center</div>
-    </div>
-    <div class="dropdown-panel" id="dropdown-settings">
-        <div class="dropdown-item" id="board-stats-item"><svg><use href="#icon-info"/></svg> Board Summary</div>
     </div>
 
     <div class="board-tabs" id="board-tabs"></div>
@@ -405,6 +414,9 @@ or commercial use is prohibited.
         </div>
         <div class="disconnect-submenu-wrapper" id="disconnect-submenu-wrapper"></div>
         <div class="context-menu-item danger" data-action="disconnect-all"><svg width="20" height="20"><use href="#icon-x"/></svg> Remove All Connections</div>
+        <div class="dropdown-divider"></div>
+        <div class="context-menu-item" data-action="copy-note"><svg width="20" height="20"><use href="#icon-copy"/></svg> Copy Note</div>
+        <div class="context-menu-item" data-action="paste-note"><svg width="20" height="20"><use href="#icon-paste"/></svg> Paste Note</div>
         <div class="dropdown-divider"></div>
         <div class="context-menu-item danger" data-action="delete-note"><svg width="20" height="20"><use href="#icon-trash"/></svg> Delete Note</div>
     </div>
@@ -478,22 +490,23 @@ or commercial use is prohibited.
             <option value="straight">Straight</option>
             <option value="straight-dashed">Straight Dashed</option>
             <option value="curved-dashed">Curved Dashed</option>
+            <option value="straight-dashed-dotted">Straight Dashed-Dotted</option>
+            <option value="curved-dashed-dotted">Curved Dashed-Dotted</option>
             <option value="wavy">Wavy</option>
-            <option value="parallel-2">Two Parallel Lines</option>
-            <option value="parallel-3">Three Parallel Lines</option>
         </select>
     </div>
 
-    <div class="modal-overlay" id="tips-modal">
+    <div class="modal-overlay" id="help-modal">
         <button class="close-modal"><svg width="20" height="20" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-x"/></svg></button>
-        <h2>💡 Tips & Help</h2>
+        <h2>💡 Help</h2>
         <p><strong>Add notes:</strong> right‑click board → "Add Note".</p>
         <p><strong>Move board:</strong> drag empty space or use scroll/pinch to zoom.</p>
         <p><strong>Connect notes:</strong> right‑click note → "Connect to Another", then click another note.</p>
         <p><strong>Disconnect:</strong> right‑click → "Disconnect..." then choose a connected note to remove that single link, or "Remove All Connections".</p>
         <p><strong>Customize:</strong> left‑click note (not on text) → change color, font, size, direction, layer order.</p>
         <p><strong>Star:</strong> click the star icon to mark important notes.</p>
-        <p><strong>Tags:</strong> View → "Show Tags" to see auto‑generated #tags above notes.</p>
+        <p><strong>Like/Dislike:</strong> click the thumbs up/down icons to react to notes.</p>
+        <p><strong>Tags:</strong> View → "Tags" to see auto‑generated #tags above notes.</p>
         <p><strong>Search:</strong> use the 🔍 button to find notes by title, tag, or content.</p>
         <p><strong>Boards:</strong> up to 5 boards, rename by double‑clicking tab name.</p>
         <p><strong>Export/Import:</strong> File menu for saving/loading board data.</p>
@@ -501,11 +514,10 @@ or commercial use is prohibited.
     <div class="modal-overlay" id="about-modal">
         <button class="close-modal"><svg width="20" height="20" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-x"/></svg></button>
         <h2>ℹ️ About</h2>
-        <p><strong>Boards | Online Brainstorming Program</strong></p>
+        <p><strong>Infinite Sticky Note Board</strong></p>
         <p>Version 1.0.0</p>
         <p>Developed by <strong>Abolfazl Fazeli</strong></p>
         <p>📧 <a href="mailto:abolfazlfazelimahsayeh@gmail.com" style="color:var(--accent)">abolfazlfazelimahsayeh@gmail.com</a></p>
-        <p>( All Rights Reserved For Abolfazl Fazeli Copyright (c) 2026 )</p>
     </div>
     <div class="modal-overlay" id="search-modal">
         <button class="close-modal"><svg width="20" height="20" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-x"/></svg></button>
@@ -517,6 +529,11 @@ or commercial use is prohibited.
         <button class="close-modal"><svg width="20" height="20" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-x"/></svg></button>
         <h2>📊 Board Summary</h2>
         <div id="stats-content"></div>
+    </div>
+    <div class="modal-overlay" id="marked-notes-modal">
+        <button class="close-modal"><svg width="20" height="20" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-x"/></svg></button>
+        <h2>👍👎 Marked Notes</h2>
+        <div id="marked-notes-content"></div>
     </div>
 
     <button id="return-to-star-btn" title="Go to nearest starred note"><svg width="24" height="24" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-star"/></svg></button>
@@ -555,17 +572,18 @@ or commercial use is prohibited.
             const connLineType = document.getElementById('conn-line-type');
             const disconnectMainItem = document.getElementById('disconnect-main-item');
             const disconnectSubmenuWrapper = document.getElementById('disconnect-submenu-wrapper');
-            const tagsToggleText = document.getElementById('tags-toggle-text');
             const searchInput = document.getElementById('search-input');
             const searchResults = document.getElementById('search-results');
             const statsContent = document.getElementById('stats-content');
-            const tipsModal = document.getElementById('tips-modal');
+            const helpModal = document.getElementById('help-modal');
             const aboutModal = document.getElementById('about-modal');
             const searchModal = document.getElementById('search-modal');
             const statsModal = document.getElementById('stats-modal');
+            const markedNotesModal = document.getElementById('marked-notes-modal');
+            const markedNotesContent = document.getElementById('marked-notes-content');
 
             let audioCtx=null;
-            const play=(type)=>{ try{ if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==='suspended') audioCtx.resume(); const n=audioCtx.currentTime; if(type==='click'){const o=audioCtx.createOscillator();o.type='sine';o.frequency.setValueAtTime(800,n);o.frequency.exponentialRampToValueAtTime(400,n+0.08);const g=audioCtx.createGain();g.gain.setValueAtTime(0.2,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.1);o.connect(g);g.connect(audioCtx.destination);o.start(n);o.stop(n+0.1);} else if(type==='pop'){const o=audioCtx.createOscillator();o.type='triangle';o.frequency.setValueAtTime(600,n);o.frequency.exponentialRampToValueAtTime(150,n+0.15);const g=audioCtx.createGain();g.gain.setValueAtTime(0.25,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.18);o.connect(g);g.connect(audioCtx.destination);o.start(n);o.stop(n+0.18);} else if(type==='star'){const o=audioCtx.createOscillator();o.type='sine';o.frequency.setValueAtTime(1046.5,n);const g=audioCtx.createGain();g.gain.setValueAtTime(0.3,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.2);o.connect(g);g.connect(audioCtx.destination);o.start(n);o.stop(n+0.2);} else if(type==='return'){const o1=audioCtx.createOscillator();o1.type='sine';o1.frequency.value=523.25;const o2=audioCtx.createOscillator();o2.type='sine';o2.frequency.value=659.25;const g=audioCtx.createGain();g.gain.setValueAtTime(0.3,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.4);o1.connect(g);o2.connect(g);g.connect(audioCtx.destination);o1.start(n);o2.start(n);o1.stop(n+0.4);o2.stop(n+0.4);} }catch(e){} };
+            const play=(type)=>{ try{ if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==='suspended') audioCtx.resume(); const n=audioCtx.currentTime; if(type==='click'){const o=audioCtx.createOscillator();o.type='sine';o.frequency.setValueAtTime(800,n);o.frequency.exponentialRampToValueAtTime(400,n+0.08);const g=audioCtx.createGain();g.gain.setValueAtTime(0.2,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.1);o.connect(g);g.connect(audioCtx.destination);o.start(n);o.stop(n+0.1);} else if(type==='pop'){const o=audioCtx.createOscillator();o.type='triangle';o.frequency.setValueAtTime(600,n);o.frequency.exponentialRampToValueAtTime(150,n+0.15);const g=audioCtx.createGain();g.gain.setValueAtTime(0.25,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.18);o.connect(g);g.connect(audioCtx.destination);o.start(n);o.stop(n+0.18);} else if(type==='star'){const o=audioCtx.createOscillator();o.type='sine';o.frequency.setValueAtTime(1046.5,n);const g=audioCtx.createGain();g.gain.setValueAtTime(0.3,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.2);o.connect(g);g.connect(audioCtx.destination);o.start(n);o.stop(n+0.2);} else if(type==='like'){const o=audioCtx.createOscillator();o.type='sine';o.frequency.setValueAtTime(659.25,n);o.frequency.setValueAtTime(783.99,n+0.1);const g=audioCtx.createGain();g.gain.setValueAtTime(0.3,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.25);o.connect(g);g.connect(audioCtx.destination);o.start(n);o.stop(n+0.25);} else if(type==='dislike'){const o=audioCtx.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(311.13,n);o.frequency.setValueAtTime(233.08,n+0.12);const g=audioCtx.createGain();g.gain.setValueAtTime(0.2,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.25);o.connect(g);g.connect(audioCtx.destination);o.start(n);o.stop(n+0.25);} else if(type==='return'){const o1=audioCtx.createOscillator();o1.type='sine';o1.frequency.value=523.25;const o2=audioCtx.createOscillator();o2.type='sine';o2.frequency.value=659.25;const g=audioCtx.createGain();g.gain.setValueAtTime(0.3,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.4);o1.connect(g);o2.connect(g);g.connect(audioCtx.destination);o1.start(n);o2.start(n);o1.stop(n+0.4);o2.stop(n+0.4);} }catch(e){} };
             let toastTimeout;
             const showToast=(msg)=>{toast.textContent=msg;toast.classList.add('show');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>toast.classList.remove('show'),2000);};
 
@@ -574,6 +592,7 @@ or commercial use is prohibited.
             let connectingFromId=null,contextMenuTargetId=null,customizationTargetId=null,connCustomizationTargetId=null;
             let showTags=false;
             let globalZCounter = 10;
+            let copiedNoteData = null;
 
             let isPanning=false,isDraggingNote=false,dragNoteId=null;
             let dragStartX=0,dragStartY=0,dragNoteOrigX=0,dragNoteOrigY=0;
@@ -589,38 +608,31 @@ or commercial use is prohibited.
             const getBoard=()=>boards[activeBoardIdx];
             const save=()=>{try{localStorage.setItem('boardsData',JSON.stringify(boards));}catch(e){}};
 
-            // ─── rAF tick for board transform ──────────
             let rafPending = false;
             function scheduleBoardUpdate() {
                 if (!rafPending) {
                     rafPending = true;
                     requestAnimationFrame(() => {
                         rafPending = false;
-                        // update the transform without redrawing connections (pan/zoom only)
                         boardEl.classList.add('no-transition');
                         boardEl.style.transform = `translate3d(${viewX}px, ${viewY}px, 0) scale(${zoom})`;
                     });
                 }
             }
 
-            // Replace the old updateTransform with a version that does NOT call updateAllConnections
             function updateTransform(animate = false) {
                 boardEl.classList.toggle('no-transition', !animate);
                 boardEl.style.transform = `translate3d(${viewX}px, ${viewY}px, 0) scale(${zoom})`;
-                // Connections are now updated separately only when needed
             }
 
-            // Selective connection update for a single note
             function updateConnectionsForNote(noteId) {
                 const board = getBoard();
                 const note = board.notes.find(n => n.id === noteId);
                 if (!note) return;
-                // Remove old paths for this note's connections
                 note.connections.forEach(connId => {
                     const existing = connectionsSvg.querySelector(`path[data-conn-id="${connId}"]`);
                     if (existing) existing.remove();
                 });
-                // Redraw each connection
                 note.connections.forEach(connId => {
                     const conn = (board.connections || []).find(c => c.id === connId);
                     if (!conn) return;
@@ -639,21 +651,22 @@ or commercial use is prohibited.
                         p.setAttribute('data-conn-id', conn.id);
                         p.classList.add('conn-path');
                         p.style.stroke = conn.color || '#a5b4fc';
-                        if (conn.type.includes('dashed')) p.style.strokeDasharray = '8,6';
+                        if (conn.type.includes('dashed-dotted')) p.style.strokeDasharray = '8,4,2,4';
+                        else if (conn.type.includes('dashed')) p.style.strokeDasharray = '8,6';
                         p.addEventListener('contextmenu', (e) => { e.preventDefault(); e.stopPropagation(); showConnCustomizationPopup(e.clientX, e.clientY, conn.id); });
                         connectionsSvg.appendChild(p);
                     };
-                    if (conn.type === 'straight' || conn.type === 'straight-dashed') createPath(`M ${x1} ${y1} L ${x2} ${y2}`);
-                    else if (conn.type === 'curved-dashed' || conn.type === 'curved') createPath(`M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`);
-                    else if (conn.type === 'wavy') createPath(buildWavyPath(x1, y1, x2, y2));
-                    else if (conn.type === 'parallel-2' || conn.type === 'parallel-3') {
-                        const count = conn.type === 'parallel-2' ? 2 : 3;
-                        buildParallelPath(x1, y1, x2, y2, count).forEach(d => createPath(d));
-                    } else createPath(`M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`);
+                    const type = conn.type;
+                    if (type === 'straight' || type === 'straight-dashed' || type === 'straight-dashed-dotted') {
+                        createPath(`M ${x1} ${y1} L ${x2} ${y2}`);
+                    } else if (type === 'curved' || type === 'curved-dashed' || type === 'curved-dashed-dotted') {
+                        createPath(`M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`);
+                    } else if (type === 'wavy') {
+                        createPath(buildWavyPath(x1, y1, x2, y2));
+                    }
                 });
             }
 
-            // Full connection rebuild (used only on structural changes)
             function updateAllConnections() {
                 while (connectionsSvg.firstChild) connectionsSvg.removeChild(connectionsSvg.firstChild);
                 const board = getBoard();
@@ -673,31 +686,37 @@ or commercial use is prohibited.
                         p.setAttribute('data-conn-id', conn.id);
                         p.classList.add('conn-path');
                         p.style.stroke = conn.color || '#a5b4fc';
-                        if (conn.type.includes('dashed')) p.style.strokeDasharray = '8,6';
+                        if (conn.type.includes('dashed-dotted')) p.style.strokeDasharray = '8,4,2,4';
+                        else if (conn.type.includes('dashed')) p.style.strokeDasharray = '8,6';
                         p.addEventListener('contextmenu', (e) => { e.preventDefault(); e.stopPropagation(); showConnCustomizationPopup(e.clientX, e.clientY, conn.id); });
                         connectionsSvg.appendChild(p);
                     };
-                    if (conn.type === 'straight' || conn.type === 'straight-dashed') createPath(`M ${x1} ${y1} L ${x2} ${y2}`);
-                    else if (conn.type === 'curved-dashed' || conn.type === 'curved') createPath(`M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`);
-                    else if (conn.type === 'wavy') createPath(buildWavyPath(x1, y1, x2, y2));
-                    else if (conn.type === 'parallel-2' || conn.type === 'parallel-3') {
-                        const count = conn.type === 'parallel-2' ? 2 : 3;
-                        buildParallelPath(x1, y1, x2, y2, count).forEach(d => createPath(d));
-                    } else createPath(`M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`);
+                    const type = conn.type;
+                    if (type === 'straight' || type === 'straight-dashed' || type === 'straight-dashed-dotted') {
+                        createPath(`M ${x1} ${y1} L ${x2} ${y2}`);
+                    } else if (type === 'curved' || type === 'curved-dashed' || type === 'curved-dashed-dotted') {
+                        createPath(`M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`);
+                    } else if (type === 'wavy') {
+                        createPath(buildWavyPath(x1, y1, x2, y2));
+                    }
                 });
             }
 
             const screenToBoard=(sx,sy)=>{const r=boardContainer.getBoundingClientRect();return{x:(sx-r.left-viewX)/zoom,y:(sy-r.top-viewY)/zoom};};
             const boardToScreen=(bx,by)=>{const r=boardContainer.getBoundingClientRect();return{x:bx*zoom+viewX+r.left,y:by*zoom+viewY+r.top};};
 
-            const createNote=(x,y,title='New Note',color='yellow',font="'Segoe UI', system-ui, sans-serif",sizeScale=1,fontSize=1,direction='ltr')=>{
+            const createNote=(x,y,title='New Note',color='yellow',font="'Segoe UI', system-ui, sans-serif",sizeScale=1,fontSize=1,direction='ltr',content='')=>{
                 const board=getBoard();
                 if(typeof board.noteIdCounter!=='number') board.noteIdCounter=0;
                 const id='n'+(++board.noteIdCounter);
                 const zIndex = ++globalZCounter;
-                const note={id,x,y,title,color,font,sizeScale,fontSize,starred:false,direction,connections:[],tag:generateTag(),zIndex};
+                const note={id,x,y,title,color,font,sizeScale,fontSize,starred:false,liked:false,disliked:false,direction,connections:[],tag:generateTag(),zIndex};
                 board.notes.push(note);
                 renderNoteElement(note);
+                if(content){
+                    const ta = document.querySelector(`[data-note-id="${id}"] textarea`);
+                    if(ta) ta.value = content;
+                }
                 updateAllConnections();
                 save();
                 return note;
@@ -707,7 +726,10 @@ or commercial use is prohibited.
                 const exist=document.querySelector(`[data-note-id="${note.id}"]`);
                 if(exist) exist.remove();
                 const el=document.createElement('div');
-                el.className='sticky-note'+(note.starred?' starred':'');
+                el.className='sticky-note'+
+                    (note.starred?' starred':'')+
+                    (note.liked?' liked':'')+
+                    (note.disliked?' disliked':'');
                 el.setAttribute('data-note-id',note.id);
                 el.style.left=note.x+'px';el.style.top=note.y+'px';
                 el.style.width=(note.sizeScale*220)+'px';el.style.minHeight=(note.sizeScale*140)+'px';
@@ -717,9 +739,16 @@ or commercial use is prohibited.
                 el.dir=note.direction||'ltr';
                 const hc=NOTE_HEADER[note.color]||'#fde68a';
                 el.innerHTML=`<div class="tag-badge">${note.tag}</div>
-                    <div class="note-header" style="background:${hc}"><span class="note-title-text">${escapeHtml(note.title)}</span><button class="star-btn">${svgIcon('star',20)}</button></div>
+                    <div class="note-header" style="background:${hc}">
+                        <span class="note-title-text">${escapeHtml(note.title)}</span>
+                        <button class="star-btn">${svgIcon('star',20)}</button>
+                        <button class="like-btn">${svgIcon('like',20)}</button>
+                        <button class="dislike-btn">${svgIcon('dislike',20)}</button>
+                    </div>
                     <div class="note-body"><textarea placeholder="Write here..." style="font-size:${note.fontSize}rem;" dir="${note.direction||'ltr'}"></textarea></div>`;
                 el.querySelector('.star-btn').addEventListener('click',(e)=>{e.stopPropagation();toggleStar(note.id);});
+                el.querySelector('.like-btn').addEventListener('click',(e)=>{e.stopPropagation();toggleLike(note.id);});
+                el.querySelector('.dislike-btn').addEventListener('click',(e)=>{e.stopPropagation();toggleDislike(note.id);});
                 el.addEventListener('mousedown',(e)=>onNoteMouseDown(e,note.id));
                 el.addEventListener('touchstart',(e)=>onNoteTouchStart(e,note.id),{passive:false});
                 el.addEventListener('contextmenu',(e)=>{e.preventDefault();onNoteContextMenu(e,note.id);});
@@ -740,7 +769,11 @@ or commercial use is prohibited.
                 const ta=el.querySelector('textarea');
                 if(ta){ta.style.fontSize=note.fontSize+'rem';ta.dir=note.direction||'ltr';}
                 el.classList.toggle('starred',note.starred);
+                el.classList.toggle('liked',note.liked);
+                el.classList.toggle('disliked',note.disliked);
                 el.querySelector('.star-btn').innerHTML=svgIcon('star',20);
+                el.querySelector('.like-btn').innerHTML=svgIcon('like',20);
+                el.querySelector('.dislike-btn').innerHTML=svgIcon('dislike',20);
                 const badge=el.querySelector('.tag-badge');
                 if(badge){badge.textContent=note.tag;badge.classList.toggle('visible',showTags);}
             };
@@ -774,13 +807,28 @@ or commercial use is prohibited.
                 play('star');
                 save();
             };
+            const toggleLike=(noteId)=>{
+                const note=getBoard().notes.find(n=>n.id===noteId);
+                if(!note) return;
+                note.liked=!note.liked;
+                updateNoteElement(note);
+                play('like');
+                save();
+            };
+            const toggleDislike=(noteId)=>{
+                const note=getBoard().notes.find(n=>n.id===noteId);
+                if(!note) return;
+                note.disliked=!note.disliked;
+                updateNoteElement(note);
+                play('dislike');
+                save();
+            };
 
             const deleteNote=(id)=>{const board=getBoard();const note=board.notes.find(n=>n.id===id);if(!note) return;[...note.connections].forEach(cid=>removeConnection(cid));document.querySelector(`[data-note-id="${id}"]`)?.remove();board.notes=board.notes.filter(n=>n.id!==id);updateAllConnections();closeAllPopups();save();};
             const addConnection=(fromId,toId,color='#a5b4fc',type='curved')=>{const board=getBoard();if(!board.connections) board.connections=[];const exist=board.connections.find(c=>(c.fromNoteId===fromId&&c.toNoteId===toId)||(c.fromNoteId===toId&&c.toNoteId===fromId));if(exist) return null;const connId='conn-'+Date.now()+'-'+Math.random().toString(36).substr(2,6);const conn={id:connId,fromNoteId:fromId,toNoteId:toId,color,type};board.connections.push(conn);const n1=board.notes.find(n=>n.id===fromId),n2=board.notes.find(n=>n.id===toId);if(n1)n1.connections.push(connId);if(n2)n2.connections.push(connId);updateAllConnections();save();return connId;};
             const removeConnection=(connId)=>{const board=getBoard();const conn=(board.connections||[]).find(c=>c.id===connId);if(!conn) return;const n1=board.notes.find(n=>n.id===conn.fromNoteId),n2=board.notes.find(n=>n.id===conn.toNoteId);if(n1)n1.connections=n1.connections.filter(c=>c!==connId);if(n2)n2.connections=n2.connections.filter(c=>c!==connId);board.connections=board.connections.filter(c=>c.id!==connId);updateAllConnections();save();};
 
             const buildWavyPath=(x1,y1,x2,y2)=>{const dx=x2-x1,dy=y2-y1,dist=Math.sqrt(dx*dx+dy*dy)||1;const perpX=-dy/dist,perpY=dx/dist;const amplitude=Math.min(dist*0.08,30);let d=`M ${x1} ${y1}`;for(let i=1;i<=8;i++){const t=i/8;const px=x1+dx*t,py=y1+dy*t;const wave=Math.sin(t*Math.PI*4)*amplitude;d+=` Q ${px+perpX*wave*0.5} ${py+perpY*wave*0.5} ${px} ${py}`;} return d;};
-            const buildParallelPath=(x1,y1,x2,y2,count)=>{const dx=x2-x1,dy=y2-y1,dist=Math.sqrt(dx*dx+dy*dy)||1;const perpX=-dy/dist,perpY=dx/dist;const spacing=6;const offsets=count===2?[-spacing/2,spacing/2]:[-spacing,0,spacing];const midX=(x1+x2)/2,midY=(y1+y2)/2;const cx=midX+perpX*Math.min(dist*0.25,120),cy=midY+perpY*Math.min(dist*0.25,120);return offsets.map(off=>`M ${x1+perpX*off} ${y1+perpY*off} Q ${cx+perpX*off} ${cy+perpY*off} ${x2+perpX*off} ${y2+perpY*off}`);};
 
             const updateReturnBtn=()=>returnBtn.disabled=getBoard().notes.filter(n=>n.starred).length===0;
             const animateToNote=(note)=>{const rect=boardContainer.getBoundingClientRect();const tx=note.x+note.sizeScale*110,ty=note.y+note.sizeScale*70;const targetZoom=Math.min(Math.max(zoom,0.6),1.5);const newViewX=rect.width/2-tx*targetZoom,newViewY=rect.height/2-ty*targetZoom;const startX=viewX,startY=viewY,startZoom=zoom;const startTime=performance.now();const step=(now)=>{const p=Math.min((now-startTime)/600,1);const e=1-Math.pow(1-p,3);viewX=startX+(newViewX-startX)*e;viewY=startY+(newViewY-startY)*e;zoom=startZoom+(targetZoom-startZoom)*e;updateTransform(false);if(p<1) requestAnimationFrame(step);else{viewX=newViewX;viewY=newViewY;zoom=targetZoom;updateTransform(false);}};requestAnimationFrame(step);play('return');};
@@ -788,10 +836,11 @@ or commercial use is prohibited.
             returnBtn.addEventListener('click',animateToNearestStarred);
 
             const closeAllPopups=()=>{hideContextMenu();hideCustomizationPopup();hideConnCustomizationPopup();};
+
             const showContextMenu=(sx,sy,noteId=null)=>{
                 contextMenuTargetId=noteId;
                 contextMenu.style.left=Math.min(sx,innerWidth-250)+'px';
-                contextMenu.style.top=Math.min(sy,innerHeight-350)+'px';
+                contextMenu.style.top=Math.min(sy,innerHeight-500)+'px';
                 disconnectSubmenuWrapper.classList.remove('expanded');
                 disconnectMainItem.classList.remove('expanded');
                 disconnectSubmenuWrapper.innerHTML = '';
@@ -852,13 +901,14 @@ or commercial use is prohibited.
                 customizationPopup.classList.add('active');play('click');
             };
             const hideCustomizationPopup=()=>customizationPopup.classList.remove('active');
+
             const showConnCustomizationPopup=(sx,sy,connId)=>{
                 connCustomizationTargetId=connId;
                 const conn=(getBoard().connections||[]).find(c=>c.id===connId);
                 if(!conn) return;
                 connLineType.value=conn.type||'curved';
                 connColorSwatches.querySelectorAll('.color-swatch').forEach(s=>s.classList.toggle('selected',s.dataset.color===conn.color));
-                connCustomizationPopup.style.left=Math.min(sx,innerWidth-330)+'px';
+                connCustomizationPopup.style.left=Math.min(sx,innerWidth-370)+'px';
                 connCustomizationPopup.style.top=Math.min(sy,innerHeight-400)+'px';
                 connCustomizationPopup.classList.add('active');play('click');
             };
@@ -872,6 +922,32 @@ or commercial use is prohibited.
                 if(action==='add-note'){const bp=screenToBoard(contextMenu.getBoundingClientRect().left+120,contextMenu.getBoundingClientRect().top+140);createNote(bp.x-110,bp.y-70);showToast('Note added');play('pop');}
                 else if(action==='connect'&&contextMenuTargetId){connectingFromId=contextMenuTargetId;document.querySelector(`[data-note-id="${contextMenuTargetId}"]`)?.classList.add('connecting-highlight');showToast('Click another note to connect');}
                 else if(action==='disconnect-all'&&contextMenuTargetId){const note=getBoard().notes.find(n=>n.id===contextMenuTargetId);if(note){[...note.connections].forEach(cid=>removeConnection(cid));showToast('All connections removed');}}
+                else if(action==='copy-note'&&contextMenuTargetId){
+                    const note=getBoard().notes.find(n=>n.id===contextMenuTargetId);
+                    if(note){
+                        const ta=document.querySelector(`[data-note-id="${note.id}"] textarea`);
+                        copiedNoteData = {
+                            title: note.title,
+                            color: note.color,
+                            font: note.font,
+                            sizeScale: note.sizeScale,
+                            fontSize: note.fontSize,
+                            direction: note.direction,
+                            content: ta ? ta.value : ''
+                        };
+                        showToast('Note copied');play('pop');
+                    }
+                }else if(action==='paste-note'){
+                    if(copiedNoteData){
+                        const bp=screenToBoard(contextMenu.getBoundingClientRect().left+120,contextMenu.getBoundingClientRect().top+140);
+                        const newNote = createNote(bp.x-110+20, bp.y-70+20, copiedNoteData.title, copiedNoteData.color, copiedNoteData.font, copiedNoteData.sizeScale, copiedNoteData.fontSize, copiedNoteData.direction);
+                        const ta=document.querySelector(`[data-note-id="${newNote.id}"] textarea`);
+                        if(ta) ta.value = copiedNoteData.content;
+                        showToast('Note pasted');play('pop');
+                    }else{
+                        showToast('Nothing copied');
+                    }
+                }
                 else if(action==='delete-note'&&contextMenuTargetId){deleteNote(contextMenuTargetId);showToast('Note deleted');play('pop');}
                 hideContextMenu();
             });
@@ -892,15 +968,56 @@ or commercial use is prohibited.
             document.querySelectorAll('.header-tab[data-dropdown]').forEach(btn=>{btn.addEventListener('click',()=>{const panel=document.getElementById('dropdown-'+btn.dataset.dropdown);if(!panel) return;const isOpen=panel.classList.contains('show');document.querySelectorAll('.dropdown-panel').forEach(p=>p.classList.remove('show'));if(!isOpen){positionDropdown(panel,btn);panel.classList.add('show');}});});
             document.addEventListener('click',(e)=>{if(!e.target.closest('.header-tab')&&!e.target.closest('.dropdown-panel')) document.querySelectorAll('.dropdown-panel').forEach(p=>p.classList.remove('show'));});
 
-            document.querySelector('[data-action="toggle-tags"]').addEventListener('click',()=>{showTags=!showTags;tagsToggleText.textContent=showTags?'Hide Tags':'Show Tags';document.querySelectorAll('.tag-badge').forEach(b=>b.classList.toggle('visible',showTags));document.querySelectorAll('.dropdown-panel').forEach(p=>p.classList.remove('show'));});
+            document.querySelector('[data-action="toggle-tags"]').addEventListener('click',()=>{showTags=!showTags;document.querySelectorAll('.tag-badge').forEach(b=>b.classList.toggle('visible',showTags));document.querySelectorAll('.dropdown-panel').forEach(p=>p.classList.remove('show'));});
+            document.querySelector('[data-action="board-summary"]').addEventListener('click',()=>{
+                const board=getBoard();const notes=board.notes;let words=0;notes.forEach(n=>{const ta=document.querySelector(`[data-note-id="${n.id}"] textarea`);if(ta) words+=ta.value.trim().split(/\s+/).filter(w=>w).length;});const connected=notes.filter(n=>n.connections.length>0).length;
+                statsContent.innerHTML=`<p>📌 Total notes: <strong>${notes.length}</strong></p><p>📝 Total words: <strong>${words}</strong></p><p>🔗 Connection lines: <strong>${board.connections?board.connections.length:0}</strong></p><p>🔗 Connected notes: <strong>${connected}</strong></p><p>🔗 Unconnected notes: <strong>${notes.length-connected}</strong></p>`;
+                statsModal.classList.add('active');document.querySelectorAll('.dropdown-panel').forEach(p=>p.classList.remove('show'));
+            });
+            document.querySelector('[data-action="marked-notes"]').addEventListener('click',()=>{
+                const board=getBoard();
+                const liked = board.notes.filter(n=>n.liked);
+                const disliked = board.notes.filter(n=>n.disliked);
+                markedNotesContent.innerHTML = '';
+                if(liked.length===0 && disliked.length===0){
+                    markedNotesContent.innerHTML='<p>No liked or disliked notes.</p>';
+                }else{
+                    if(liked.length>0){
+                        const groupDiv = document.createElement('div');
+                        groupDiv.className='liked-group';
+                        groupDiv.innerHTML=`<h3>👍 Liked (${liked.length})</h3>`;
+                        liked.forEach(n=>{
+                            const item = document.createElement('div');
+                            item.className='liked-disliked-item';
+                            item.innerHTML=`<span>${escapeHtml(n.title)}</span> <span style="opacity:0.6;">${n.tag}</span>`;
+                            item.addEventListener('click',()=>{animateToNote(n);markedNotesModal.classList.remove('active');});
+                            groupDiv.appendChild(item);
+                        });
+                        markedNotesContent.appendChild(groupDiv);
+                    }
+                    if(disliked.length>0){
+                        const groupDiv = document.createElement('div');
+                        groupDiv.className='liked-group';
+                        groupDiv.innerHTML=`<h3>👎 Disliked (${disliked.length})</h3>`;
+                        disliked.forEach(n=>{
+                            const item = document.createElement('div');
+                            item.className='liked-disliked-item';
+                            item.innerHTML=`<span>${escapeHtml(n.title)}</span> <span style="opacity:0.6;">${n.tag}</span>`;
+                            item.addEventListener('click',()=>{animateToNote(n);markedNotesModal.classList.remove('active');});
+                            groupDiv.appendChild(item);
+                        });
+                        markedNotesContent.appendChild(groupDiv);
+                    }
+                }
+                markedNotesModal.classList.add('active');
+                document.querySelectorAll('.dropdown-panel').forEach(p=>p.classList.remove('show'));
+            });
 
-            document.getElementById('board-stats-item').addEventListener('click',()=>{const board=getBoard();const notes=board.notes;let words=0;notes.forEach(n=>{const ta=document.querySelector(`[data-note-id="${n.id}"] textarea`);if(ta) words+=ta.value.trim().split(/\s+/).filter(w=>w).length;});const connected=notes.filter(n=>n.connections.length>0).length;statsContent.innerHTML=`<p>📌 Total notes: <strong>${notes.length}</strong></p><p>📝 Total words: <strong>${words}</strong></p><p>🔗 Connection lines: <strong>${board.connections?board.connections.length:0}</strong></p><p>🔗 Connected notes: <strong>${connected}</strong></p><p>🔗 Unconnected notes: <strong>${notes.length-connected}</strong></p>`;statsModal.classList.add('active');document.querySelectorAll('.dropdown-panel').forEach(p=>p.classList.remove('show'));});
-
-            document.getElementById('tips-tab').addEventListener('click',()=>tipsModal.classList.add('active'));
+            document.getElementById('help-tab').addEventListener('click',()=>helpModal.classList.add('active'));
             document.getElementById('about-tab').addEventListener('click',()=>aboutModal.classList.add('active'));
             document.getElementById('search-tab').addEventListener('click',()=>searchModal.classList.add('active'));
-            document.querySelectorAll('.close-modal').forEach(btn=>btn.addEventListener('click',()=>{tipsModal.classList.remove('active');aboutModal.classList.remove('active');searchModal.classList.remove('active');statsModal.classList.remove('active');}));
-            window.addEventListener('click',(e)=>{if(e.target===tipsModal) tipsModal.classList.remove('active');if(e.target===aboutModal) aboutModal.classList.remove('active');if(e.target===searchModal) searchModal.classList.remove('active');if(e.target===statsModal) statsModal.classList.remove('active');});
+            document.querySelectorAll('.close-modal').forEach(btn=>btn.addEventListener('click',()=>{helpModal.classList.remove('active');aboutModal.classList.remove('active');searchModal.classList.remove('active');statsModal.classList.remove('active');markedNotesModal.classList.remove('active');}));
+            window.addEventListener('click',(e)=>{if(e.target===helpModal) helpModal.classList.remove('active');if(e.target===aboutModal) aboutModal.classList.remove('active');if(e.target===searchModal) searchModal.classList.remove('active');if(e.target===statsModal) statsModal.classList.remove('active');if(e.target===markedNotesModal) markedNotesModal.classList.remove('active');});
 
             searchInput.addEventListener('input',()=>{
                 const q=searchInput.value.trim().toLowerCase();
@@ -926,7 +1043,7 @@ or commercial use is prohibited.
                     div.addEventListener('click',()=>{animateToNote(n);searchModal.classList.remove('active');});
                     searchResults.appendChild(div);
                 });
-                if(filtered.length===0) searchResults.innerHTML='<p style="opacity:0.5;text-align:center;padding:20px;">No notes found matching your search.</p>';
+                if(filtered.length===0) searchResults.innerHTML='<p style="opacity:0.5;text-align:center;padding:20px;">No notes found.</p>';
             });
 
             document.querySelector('#dropdown-file .dropdown-item[data-action="new-board"]').addEventListener('click',()=>{if(boards.length>=5){showToast('Max 5 boards');return;}boards.push({id:Date.now().toString(),name:'Board '+(boards.length+1),notes:[],noteIdCounter:0,connections:[],viewX:0,viewY:0,zoom:1});globalZCounter=10;switchToBoard(boards.length-1);renderBoardTabs();closeDropdowns();});
@@ -942,9 +1059,28 @@ or commercial use is prohibited.
             const renderAllNotes=()=>{document.querySelectorAll('.sticky-note').forEach(n=>n.remove());while(connectionsSvg.firstChild) connectionsSvg.removeChild(connectionsSvg.firstChild);getBoard().notes.forEach(note=>renderNoteElement(note));updateAllConnections();};
             const renderBoardTabs=()=>{boardTabsEl.innerHTML='';boards.forEach((b,i)=>{const tab=document.createElement('span');tab.className='board-tab'+(i===activeBoardIdx?' active':'');tab.innerHTML=`<span class="tab-name" contenteditable="false">${escapeHtml(b.name)}</span><button class="close-btn">${svgIcon('x',12)}</button>`;const ns=tab.querySelector('.tab-name'),cb=tab.querySelector('.close-btn');tab.addEventListener('click',(e)=>{if(e.target===cb||e.target.closest('.close-btn')) return;switchToBoard(i);});ns.addEventListener('dblclick',(e)=>{e.stopPropagation();ns.contentEditable='true';ns.focus();});ns.addEventListener('blur',()=>{ns.contentEditable='false';b.name=ns.textContent.trim()||b.name;save();renderBoardTabs();});ns.addEventListener('keydown',(e)=>{if(e.key==='Enter'){e.preventDefault();ns.blur();}});cb.addEventListener('click',(e)=>{e.stopPropagation();if(boards.length<=1){showToast('Cannot delete last board');return;}boards.splice(i,1);if(activeBoardIdx>=boards.length) activeBoardIdx=boards.length-1;currentBoard=getBoard();viewX=currentBoard.viewX;viewY=currentBoard.viewY;zoom=currentBoard.zoom;renderAllNotes();updateTransform(false);renderBoardTabs();updateReturnBtn();});boardTabsEl.appendChild(tab);});};
 
-            // Interaction handlers – optimized for selective connection updates
-            const onNoteMouseDown=(e,noteId)=>{if(e.button!==0) return;if(e.target.closest('textarea')||e.target.closest('.star-btn')) return;if(connectingFromId){if(connectingFromId!==noteId){addConnection(connectingFromId,noteId);clearHighlights();connectingFromId=null;showToast('Connected!');play('pop');}else{clearHighlights();connectingFromId=null;showToast('Cancelled');}return;}e.preventDefault();e.stopPropagation();potentialClickNoteId=noteId;clickStartX=e.clientX;clickStartY=e.clientY;const note=getBoard().notes.find(n=>n.id===noteId);if(note){dragNoteOrigX=note.x;dragNoteOrigY=note.y;}dragStartX=e.clientX;dragStartY=e.clientY;};
-            const onNoteTouchStart=(e,noteId)=>{if(e.target.closest('textarea')||e.target.closest('.star-btn')) return;if(connectingFromId){if(connectingFromId!==noteId){e.preventDefault();addConnection(connectingFromId,noteId);clearHighlights();connectingFromId=null;}else{e.preventDefault();clearHighlights();connectingFromId=null;}return;}const t=e.touches[0];potentialClickNoteId=noteId;clickStartX=t.clientX;clickStartY=t.clientY;const note=getBoard().notes.find(n=>n.id===noteId);if(note){dragNoteOrigX=note.x;dragNoteOrigY=note.y;}dragStartX=t.clientX;dragStartY=t.clientY;touchMoved=false;};
+            const onNoteMouseDown=(e,noteId)=>{
+                if(e.button!==0) return;
+                if(e.target.closest('textarea')||e.target.closest('.star-btn')||e.target.closest('.like-btn')||e.target.closest('.dislike-btn')) return;
+                if(connectingFromId){
+                    if(connectingFromId!==noteId){addConnection(connectingFromId,noteId);clearHighlights();connectingFromId=null;showToast('Connected!');play('pop');}
+                    else{clearHighlights();connectingFromId=null;showToast('Cancelled');}
+                    return;
+                }
+                e.preventDefault();e.stopPropagation();
+                potentialClickNoteId=noteId;clickStartX=e.clientX;clickStartY=e.clientY;
+                const note=getBoard().notes.find(n=>n.id===noteId);
+                if(note){dragNoteOrigX=note.x;dragNoteOrigY=note.y;}
+                dragStartX=e.clientX;dragStartY=e.clientY;
+            };
+            const onNoteTouchStart=(e,noteId)=>{
+                if(e.target.closest('textarea')||e.target.closest('.star-btn')||e.target.closest('.like-btn')||e.target.closest('.dislike-btn')) return;
+                if(connectingFromId){if(connectingFromId!==noteId){e.preventDefault();addConnection(connectingFromId,noteId);clearHighlights();connectingFromId=null;}else{e.preventDefault();clearHighlights();connectingFromId=null;}return;}
+                const t=e.touches[0];potentialClickNoteId=noteId;clickStartX=t.clientX;clickStartY=t.clientY;
+                const note=getBoard().notes.find(n=>n.id===noteId);
+                if(note){dragNoteOrigX=note.x;dragNoteOrigY=note.y;}
+                dragStartX=t.clientX;dragStartY=t.clientY;touchMoved=false;
+            };
             const clearHighlights=()=>document.querySelectorAll('.connecting-highlight').forEach(el=>el.classList.remove('connecting-highlight'));
 
             window.addEventListener('mousemove',(e)=>{
@@ -956,13 +1092,12 @@ or commercial use is prohibited.
                         note.x = dragNoteOrigX + dx;
                         note.y = dragNoteOrigY + dy;
                         updateNoteElement(note);
-                        // Update only connections for this note
                         updateConnectionsForNote(dragNoteId);
                     }
                 } else if (isPanning) {
                     viewX = panStartViewX + (e.clientX - panStartMouseX);
                     viewY = panStartViewY + (e.clientY - panStartMouseY);
-                    scheduleBoardUpdate(); // rAF-based update, no connection redraw
+                    scheduleBoardUpdate();
                 } else if (potentialClickNoteId) {
                     if (Math.hypot(e.clientX - clickStartX, e.clientY - clickStartY) > DRAG_THRESHOLD) {
                         isDraggingNote = true;
@@ -978,7 +1113,6 @@ or commercial use is prohibited.
                     document.querySelector(`[data-note-id="${dragNoteId}"]`)?.classList.remove('dragging');
                     isDraggingNote = false;
                     dragNoteId = null;
-                    // No need to update connections again, they are already up to date
                     save();
                 } else if (potentialClickNoteId) {
                     const nid = potentialClickNoteId;
@@ -1002,7 +1136,7 @@ or commercial use is prohibited.
                     viewX=mx-rect.left-((mx-rect.left-pinchStartViewX)/pinchStartZoom)*newZoom;
                     viewY=my-rect.top-((my-rect.top-pinchStartViewY)/pinchStartZoom)*newZoom;
                     zoom=newZoom;
-                    scheduleBoardUpdate(); // rAF
+                    scheduleBoardUpdate();
                     return;
                 }
                 if(isDraggingNote&&dragNoteId&&e.touches.length===1){
@@ -1075,19 +1209,20 @@ or commercial use is prohibited.
                 viewX=mx-bx*newZoom;
                 viewY=my-by*newZoom;
                 zoom=newZoom;
-                scheduleBoardUpdate(); // rAF, no connection redraw
+                scheduleBoardUpdate();
             },{passive:false});
             window.addEventListener('keydown',(e)=>{if(e.key==='Escape'){clearHighlights();connectingFromId=null;closeAllPopups();}});
 
-            const load=()=>{try{const raw=localStorage.getItem('boardsData');if(raw) boards=JSON.parse(raw);}catch(e){}if(!boards||boards.length===0) boards=[{id:Date.now().toString(),name:'Board 1',notes:[],noteIdCounter:0,connections:[],viewX:0,viewY:0,zoom:1}];boards.forEach(b=>{b.notes=b.notes||[];b.noteIdCounter=b.noteIdCounter||0;b.connections=b.connections||[];b.viewX=b.viewX||0;b.viewY=b.viewY||0;b.zoom=b.zoom||1;b.notes.forEach(n=>{n.fontSize=n.fontSize||1;n.direction=n.direction||'ltr';n.connections=n.connections||[];if(!n.tag) n.tag=generateTag();if(!n.zIndex) n.zIndex=10;});const maxZ=Math.max(...b.notes.map(n=>n.zIndex||10),10);globalZCounter=Math.max(globalZCounter,maxZ);});};
+            const load=()=>{try{const raw=localStorage.getItem('boardsData');if(raw) boards=JSON.parse(raw);}catch(e){}if(!boards||boards.length===0) boards=[{id:Date.now().toString(),name:'Board 1',notes:[],noteIdCounter:0,connections:[],viewX:0,viewY:0,zoom:1}];boards.forEach(b=>{b.notes=b.notes||[];b.noteIdCounter=b.noteIdCounter||0;b.connections=b.connections||[];b.viewX=b.viewX||0;b.viewY=b.viewY||0;b.zoom=b.zoom||1;b.notes.forEach(n=>{n.fontSize=n.fontSize||1;n.direction=n.direction||'ltr';n.connections=n.connections||[];if(!n.tag) n.tag=generateTag();if(!n.zIndex) n.zIndex=10;n.liked=n.liked||false;n.disliked=n.disliked||false;});const maxZ=Math.max(...b.notes.map(n=>n.zIndex||10),10);globalZCounter=Math.max(globalZCounter,maxZ);});};
             load();
             activeBoardIdx=0;
             const initBoard=getBoard();
             if(initBoard.notes.length===0){const containerRect=boardContainer.getBoundingClientRect();viewX=containerRect.width/2-BOARD_CENTER*zoom;viewY=containerRect.height/2-BOARD_CENTER*zoom;const n1=createNote(BOARD_CENTER-120,BOARD_CENTER-100,'Hello! 👋','yellow');const n2=createNote(BOARD_CENTER+160,BOARD_CENTER-80,'Tips','blue');addConnection(n1.id,n2.id);}else{viewX=initBoard.viewX;viewY=initBoard.viewY;zoom=initBoard.zoom;}
             renderAllNotes();updateTransform(false);renderBoardTabs();updateReturnBtn();
             window.addEventListener('resize',()=>{updateAllConnections();updateTransform(false);});
-            console.log('✅ Performance optimizations active – rAF pan/zoom, selective connection redraw, GPU transform.');
+            console.log('✅ Like/Dislike system active, marked notes show likes/dislikes, connection popup optimized.');
         })();
     </script>
 </body>
 </html>
+
