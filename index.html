@@ -52,7 +52,7 @@ or commercial use is prohibited.
             -webkit-backdrop-filter: blur(24px);
             border-bottom: 1px solid var(--glass-border);
             display: flex; align-items: center; padding:0 20px;
-            z-index: 10000; gap:12px;
+            z-index: 10000; gap:8px;
         }
         .app-title {
             font-size:1.3rem; font-weight:600;
@@ -65,8 +65,10 @@ or commercial use is prohibited.
             position:relative; background:transparent; border:none; color:var(--text-secondary);
             padding:8px 16px; border-radius:10px; cursor:pointer;
             font-weight:500; font-size:0.9rem; transition:all 0.2s; white-space:nowrap;
+            display:flex; align-items:center; gap:6px;
         }
         .header-tab:hover { background:rgba(255,255,255,0.1); color:var(--text); }
+        .header-tab:disabled { opacity:0.4; pointer-events:none; }
         .header-tab.search-tab { margin-left:auto; }
         .dropdown-panel {
             position:absolute; top:calc(var(--header-height) + 8px);
@@ -141,7 +143,7 @@ or commercial use is prohibited.
         @keyframes pulseGlow { 0%,100%{box-shadow:0 0 0 4px var(--accent);} 50%{box-shadow:0 0 0 10px rgba(129,140,248,0.3);} }
         .note-header {
             padding:10px 12px 4px; display:flex; align-items:center; justify-content:space-between;
-            border-radius:8px 8px 0 0; cursor:grab; flex-shrink:0;
+            border-radius:8px 8px 0 0; cursor:grab; flex-shrink:0; gap:4px;
         }
         .note-title-text { font-weight:700; font-size:0.95rem; color:var(--text-dark); flex:1; margin-right:8px; }
         .star-btn, .like-btn, .dislike-btn {
@@ -172,7 +174,22 @@ or commercial use is prohibited.
             box-shadow:0 4px 12px rgba(0,0,0,0.2);
         }
         .tag-badge.visible { opacity:1; }
-        .context-menu, .customization-popup, .conn-customization-popup {
+        .note-tags {
+            display:flex; gap:3px; margin-left:4px; flex-shrink:0;
+        }
+        .note-tag-dot {
+            width:10px; height:10px; border-radius:50%;
+            border:1px solid rgba(0,0,0,0.2); cursor:pointer;
+        }
+        .tag-popdown {
+            position: absolute; bottom: -26px; left: 50%; transform: translateX(-50%);
+            background: #6366f1; color: #fff; padding: 2px 8px; border-radius: 6px;
+            font-size: 0.7rem; white-space: nowrap; pointer-events: none;
+            opacity: 0; z-index: 25; box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            transition: opacity 0.15s;
+        }
+        .tag-popdown.visible { opacity: 1; }
+        .context-menu, .customization-popup, .conn-customization-popup, .tag-assign-popup {
             position:fixed; z-index:10002;
             background:var(--popup-bg); backdrop-filter:blur(32px); -webkit-backdrop-filter:blur(32px);
             border:1px solid var(--popup-border); border-radius:20px;
@@ -181,7 +198,7 @@ or commercial use is prohibited.
             transition:opacity 0.25s, transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
             color:var(--text); padding:0; overflow:visible;
         }
-        .context-menu.active, .customization-popup.active, .conn-customization-popup.active {
+        .context-menu.active, .customization-popup.active, .conn-customization-popup.active, .tag-assign-popup.active {
             opacity:1; transform:scale(1) translateY(0); pointer-events:auto;
         }
         .context-menu { padding:8px 0; min-width:240px; max-height:90vh; overflow-y:auto; }
@@ -245,7 +262,8 @@ or commercial use is prohibited.
         }
         .customization-popup { width:560px; padding:24px; }
         .conn-customization-popup { width:360px; padding:20px; }
-        .customization-popup h3, .conn-customization-popup h3 { margin:0 0 16px; font-size:1.1rem; display:flex; align-items:center; gap:8px; }
+        .tag-assign-popup { width:280px; padding:16px; max-height:400px; overflow-y:auto; }
+        .customization-popup h3, .conn-customization-popup h3, .tag-assign-popup h3 { margin:0 0 16px; font-size:1.1rem; display:flex; align-items:center; gap:8px; }
         .customization-popup label, .conn-customization-popup label {
             font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;
             color:var(--text-secondary); margin-bottom:4px; display:block;
@@ -310,11 +328,11 @@ or commercial use is prohibited.
         }
         .modal-overlay .close-modal:hover { background:rgba(255,255,255,0.1); }
         .modal-overlay .close-modal svg { stroke:currentColor; fill:none; stroke-width:2; }
-        .search-result-item, .liked-disliked-item {
+        .search-result-item, .liked-disliked-item, .history-item {
             padding:12px 16px; cursor:pointer; border-radius:10px; margin:4px 0;
             transition:all 0.2s; border:1px solid transparent; display:flex; align-items:center; gap:10px;
         }
-        .search-result-item:hover, .liked-disliked-item:hover { background:rgba(255,255,255,0.1); border-color:rgba(255,255,255,0.2); padding-left:20px; }
+        .search-result-item:hover, .liked-disliked-item:hover, .history-item:hover { background:rgba(255,255,255,0.1); border-color:rgba(255,255,255,0.2); padding-left:20px; }
         .liked-group { margin-bottom:20px; }
         .liked-group h3 { font-size:1.2rem; margin-bottom:8px; display:flex; align-items:center; gap:10px; }
         #return-to-star-btn {
@@ -336,6 +354,26 @@ or commercial use is prohibited.
             transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
         }
         .toast.show { transform:translateX(-50%) translateY(0); }
+        .tag-manager-item { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+        .tag-manager-input {
+            flex:1; padding:10px 14px; border-radius:12px;
+            border:1px solid rgba(255,255,255,0.15); background:rgba(0,0,0,0.25);
+            color:var(--text); font-size:0.9rem; outline:none;
+            transition:border-color 0.2s;
+        }
+        .tag-manager-input:focus { border-color:var(--accent); }
+        .tag-manager-color {
+            width:36px; height:36px; border:none; border-radius:8px; cursor:pointer;
+            background:transparent;
+        }
+        .tag-manager-delete {
+            background:none; border:none; color:#f87171; cursor:pointer;
+            width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+            transition:background 0.2s;
+        }
+        .tag-manager-delete:hover { background:rgba(255,255,255,0.1); }
+        .tag-assign-item { display:flex; align-items:center; gap:10px; padding:6px 0; }
+        .tag-assign-checkbox { width:18px; height:18px; cursor:pointer; }
         @media (max-width:640px) {
             .customization-popup { width:90vw; }
             .popup-columns { flex-direction:column; }
@@ -357,7 +395,6 @@ or commercial use is prohibited.
             <symbol id="icon-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></symbol>
             <symbol id="icon-crosshair" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></symbol>
             <symbol id="icon-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
-            <symbol id="icon-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
             <symbol id="icon-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></symbol>
             <symbol id="icon-palette" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 0 0 20"/><circle cx="12" cy="12" r="3"/></symbol>
             <symbol id="icon-front" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><rect x="7" y="7" width="10" height="10" rx="2"/><line x1="12" y1="3" x2="12" y2="7"/></symbol>
@@ -367,6 +404,10 @@ or commercial use is prohibited.
             <symbol id="icon-like" viewBox="0 0 24 24"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></symbol>
             <symbol id="icon-dislike" viewBox="0 0 24 24"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3H10zM17 2h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3"/></symbol>
             <symbol id="icon-thumbs" viewBox="0 0 24 24"><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3m7-2V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/><path d="M17 2h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3" transform="translate(0,24) scale(1,-1)"/></symbol>
+            <symbol id="icon-undo" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></symbol>
+            <symbol id="icon-redo" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.13-9.36L23 10"/></symbol>
+            <symbol id="icon-tag" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></symbol>
+            <symbol id="icon-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
         </defs>
     </svg>
 
@@ -374,6 +415,8 @@ or commercial use is prohibited.
         <span class="app-title">📋 Boards</span>
         <div class="header-tabs">
             <button class="header-tab" data-dropdown="file">File</button>
+            <button class="header-tab" id="undo-btn" disabled><svg width="18" height="18" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-undo"/></svg> Undo</button>
+            <button class="header-tab" id="redo-btn" disabled><svg width="18" height="18" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-redo"/></svg> Redo</button>
             <button class="header-tab" data-dropdown="view">View</button>
             <button class="header-tab" data-dropdown="tools">Tools</button>
             <button class="header-tab" id="help-tab">Help</button>
@@ -390,12 +433,13 @@ or commercial use is prohibited.
         <div class="dropdown-item danger" data-action="delete-board"><svg><use href="#icon-trash"/></svg> Delete Board</div>
     </div>
     <div class="dropdown-panel" id="dropdown-view">
-        <div class="dropdown-item" data-action="toggle-tags"><svg><use href="#icon-palette"/></svg> Tags</div>
+        <div class="dropdown-item" data-action="toggle-tags"><svg><use href="#icon-palette"/></svg> Unique Tags</div>
         <div class="dropdown-item" data-action="board-summary"><svg><use href="#icon-info"/></svg> Board Summary</div>
         <div class="dropdown-item" data-action="marked-notes"><svg><use href="#icon-thumbs"/></svg> Marked Notes</div>
     </div>
     <div class="dropdown-panel" id="dropdown-tools">
         <div class="dropdown-item" data-action="go-center"><svg><use href="#icon-crosshair"/></svg> Go to Board Center</div>
+        <div class="dropdown-item" data-action="manage-tags"><svg><use href="#icon-tag"/></svg> Manage Tags</div>
     </div>
 
     <div class="board-tabs" id="board-tabs"></div>
@@ -418,6 +462,8 @@ or commercial use is prohibited.
         <div class="context-menu-item" data-action="copy-note"><svg width="20" height="20"><use href="#icon-copy"/></svg> Copy Note</div>
         <div class="context-menu-item" data-action="paste-note"><svg width="20" height="20"><use href="#icon-paste"/></svg> Paste Note</div>
         <div class="dropdown-divider"></div>
+        <div class="context-menu-item" data-action="tag-note"><svg width="20" height="20"><use href="#icon-tag"/></svg> Set Tags...</div>
+        <div class="context-menu-item" data-action="change-history"><svg width="20" height="20"><use href="#icon-clock"/></svg> Change History</div>
         <div class="context-menu-item danger" data-action="delete-note"><svg width="20" height="20"><use href="#icon-trash"/></svg> Delete Note</div>
     </div>
 
@@ -496,6 +542,12 @@ or commercial use is prohibited.
         </select>
     </div>
 
+    <div class="tag-assign-popup" id="tag-assign-popup">
+        <button class="popup-close-btn" id="tag-assign-popup-close-btn"><svg width="16" height="16"><use href="#icon-x"/></svg></button>
+        <h3>Assign Tags</h3>
+        <div id="tag-assign-list" style="max-height:300px; overflow-y:auto;"></div>
+    </div>
+
     <div class="modal-overlay" id="help-modal">
         <button class="close-modal"><svg width="20" height="20" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-x"/></svg></button>
         <h2>💡 Help</h2>
@@ -506,8 +558,10 @@ or commercial use is prohibited.
         <p><strong>Customize:</strong> left‑click note (not on text) → change color, font, size, direction, layer order.</p>
         <p><strong>Star:</strong> click the star icon to mark important notes.</p>
         <p><strong>Like/Dislike:</strong> click the thumbs up/down icons to react to notes.</p>
-        <p><strong>Tags:</strong> View → "Tags" to see auto‑generated #tags above notes.</p>
-        <p><strong>Search:</strong> use the 🔍 button to find notes by title, tag, or content.</p>
+        <p><strong>Tags:</strong> Tools → "Manage Tags" to create/delete tags. Right‑click note → "Set Tags..." to assign tags. Hover a tag dot to see name.</p>
+        <p><strong>Search:</strong> use the 🔍 button to find notes by title, tag, or content. Use <code>tag:Physics</code> to filter by tag.</p>
+        <p><strong>Undo/Redo:</strong> Ctrl+Z / Ctrl+Shift+Z (Cmd+Z / Cmd+Shift+Z on Mac).</p>
+        <p><strong>Change History:</strong> right‑click a note → "Change History" to see recent actions on that note.</p>
         <p><strong>Boards:</strong> up to 5 boards, rename by double‑clicking tab name.</p>
         <p><strong>Export/Import:</strong> File menu for saving/loading board data.</p>
     </div>
@@ -522,7 +576,7 @@ or commercial use is prohibited.
     <div class="modal-overlay" id="search-modal">
         <button class="close-modal"><svg width="20" height="20" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-x"/></svg></button>
         <h2>🔍 Search Notes</h2>
-        <input type="text" id="search-input" placeholder="Search by title, tag (#xxxx), or content..." style="width:100%; padding:12px 16px; border-radius:12px; border:1px solid var(--popup-border); background:rgba(0,0,0,0.2); color:var(--text); margin-bottom:16px; font-size:0.95rem;">
+        <input type="text" id="search-input" placeholder="Search by title, tag:name, or content..." style="width:100%; padding:12px 16px; border-radius:12px; border:1px solid var(--popup-border); background:rgba(0,0,0,0.2); color:var(--text); margin-bottom:16px; font-size:0.95rem;">
         <div id="search-results"></div>
     </div>
     <div class="modal-overlay" id="stats-modal">
@@ -535,6 +589,16 @@ or commercial use is prohibited.
         <h2>👍👎 Marked Notes</h2>
         <div id="marked-notes-content"></div>
     </div>
+    <div class="modal-overlay" id="manage-tags-modal">
+        <button class="close-modal"><svg width="20" height="20" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-x"/></svg></button>
+        <h2>🏷️ Manage Tags</h2>
+        <div id="manage-tags-content"></div>
+    </div>
+    <div class="modal-overlay" id="change-history-modal">
+        <button class="close-modal"><svg width="20" height="20" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-x"/></svg></button>
+        <h2>📜 Change History</h2>
+        <div id="change-history-content" style="max-height:60vh; overflow-y:auto;"></div>
+    </div>
 
     <button id="return-to-star-btn" title="Go to nearest starred note"><svg width="24" height="24" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-star"/></svg></button>
     <div class="toast" id="toast"></div>
@@ -542,12 +606,248 @@ or commercial use is prohibited.
 
     <script>
         (() => {
-            // ─── Helpers ──────────────────────────────────
             const svgIcon = (id, size=18) => `<svg width="${size}" height="${size}" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-${id}"/></svg>`;
             const escapeHtml = str => { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; };
             const generateTag = () => { const chars='abcdefghijklmnopqrstuvwxyz0123456789'; let t='#'; for(let i=0;i<4;i++) t+=chars[Math.floor(Math.random()*36)]; return t; };
             const clamp = (val, min, max) => Math.min(max, Math.max(min, val));
             const isNum = v => typeof v === 'number' && isFinite(v);
+            const deepCloneNote = note => {
+                if (!note) return null;
+                return {
+                    ...note,
+                    connections: [...note.connections],
+                    tags: [...(note.tags||[])]
+                };
+            };
+
+            const MAX_HISTORY = 100;
+            class UndoManager {
+                constructor() {
+                    this.stack = [];
+                    this.pointer = -1;
+                }
+                push(command) {
+                    if (this.pointer < this.stack.length - 1) {
+                        this.stack = this.stack.slice(0, this.pointer + 1);
+                    }
+                    this.stack.push(command);
+                    if (this.stack.length > MAX_HISTORY) {
+                        this.stack.shift();
+                    }
+                    this.pointer = this.stack.length - 1;
+                    updateUndoRedoButtons();
+                }
+                undo() {
+                    if (this.pointer < 0) return;
+                    const cmd = this.stack[this.pointer];
+                    cmd.undo();
+                    this.pointer--;
+                    updateUndoRedoButtons();
+                }
+                redo() {
+                    if (this.pointer >= this.stack.length - 1) return;
+                    this.pointer++;
+                    const cmd = this.stack[this.pointer];
+                    cmd.redo();
+                    updateUndoRedoButtons();
+                }
+                clear() {
+                    this.stack = [];
+                    this.pointer = -1;
+                    updateUndoRedoButtons();
+                }
+                getHistoryForNote(noteId) {
+                    return this.stack.filter(cmd => cmd.noteIds && cmd.noteIds.includes(noteId)).slice(-100);
+                }
+            }
+            const undoMgr = new UndoManager();
+
+            function makeCreateNoteCmd(noteId, boardIdx) {
+                return {
+                    timestamp: Date.now(),
+                    description: 'Create Note',
+                    noteIds: [noteId],
+                    undo: () => {
+                        const board = boards[boardIdx];
+                        const note = board.notes.find(n => n.id === noteId);
+                        if (!note) return;
+                        note.connections.forEach(cid => {
+                            const conn = (board.connections||[]).find(c => c.id === cid);
+                            if (conn) {
+                                const other = board.notes.find(n => n.id === (conn.fromNoteId === noteId ? conn.toNoteId : conn.fromNoteId));
+                                if (other) other.connections = other.connections.filter(c => c !== cid);
+                                board.connections = board.connections.filter(c => c.id !== cid);
+                            }
+                        });
+                        document.querySelector(`[data-note-id="${noteId}"]`)?.remove();
+                        board.notes = board.notes.filter(n => n.id !== noteId);
+                        updateAllConnections();
+                        scheduleSave();
+                    },
+                    redo: () => {
+                        const board = boards[boardIdx];
+                        const note = board.notes.find(n => n.id === noteId);
+                        if (note) return;
+                        const origNote = deepCloneNote(note);
+                        board.notes.push(origNote);
+                        renderNoteElement(origNote);
+                        updateAllConnections();
+                        scheduleSave();
+                    }
+                };
+            }
+
+            function makeDeleteNoteCmd(noteId, boardIdx, noteData) {
+                return {
+                    timestamp: Date.now(),
+                    description: 'Delete Note',
+                    noteIds: [noteId],
+                    undo: () => {
+                        const board = boards[boardIdx];
+                        board.notes.push(deepCloneNote(noteData));
+                        renderNoteElement(noteData);
+                        noteData.connections.forEach(cid => {
+                            const conn = (board.connections||[]).find(c => c.id === cid);
+                            if (conn) {
+                                const other = board.notes.find(n => n.id === (conn.fromNoteId === noteId ? conn.toNoteId : conn.fromNoteId));
+                                if (other) other.connections.push(cid);
+                            }
+                        });
+                        updateAllConnections();
+                        scheduleSave();
+                    },
+                    redo: () => {
+                        const board = boards[boardIdx];
+                        const note = board.notes.find(n => n.id === noteId);
+                        if (!note) return;
+                        note.connections.forEach(cid => {
+                            const conn = (board.connections||[]).find(c => c.id === cid);
+                            if (conn) {
+                                const other = board.notes.find(n => n.id === (conn.fromNoteId === noteId ? conn.toNoteId : conn.fromNoteId));
+                                if (other) other.connections = other.connections.filter(c => c !== cid);
+                                board.connections = board.connections.filter(c => c.id !== cid);
+                            }
+                        });
+                        document.querySelector(`[data-note-id="${noteId}"]`)?.remove();
+                        board.notes = board.notes.filter(n => n.id !== noteId);
+                        updateAllConnections();
+                        scheduleSave();
+                    }
+                };
+            }
+
+            function makeEditNoteCmd(noteId, boardIdx, before, after) {
+                return {
+                    timestamp: Date.now(),
+                    description: 'Edit Note',
+                    noteIds: [noteId],
+                    undo: () => {
+                        const board = boards[boardIdx];
+                        const note = board.notes.find(n => n.id === noteId);
+                        if (!note) return;
+                        Object.assign(note, before);
+                        updateNoteElement(note);
+                        updateConnectionsForNote(noteId);
+                        scheduleSave();
+                    },
+                    redo: () => {
+                        const board = boards[boardIdx];
+                        const note = board.notes.find(n => n.id === noteId);
+                        if (!note) return;
+                        Object.assign(note, after);
+                        updateNoteElement(note);
+                        updateConnectionsForNote(noteId);
+                        scheduleSave();
+                    }
+                };
+            }
+
+            function makeMoveNoteCmd(noteId, boardIdx, oldX, oldY, newX, newY) {
+                return {
+                    timestamp: Date.now(),
+                    description: 'Move Note',
+                    noteIds: [noteId],
+                    undo: () => {
+                        const board = boards[boardIdx];
+                        const note = board.notes.find(n => n.id === noteId);
+                        if (!note) return;
+                        note.x = oldX; note.y = oldY;
+                        updateNoteElement(note);
+                        updateConnectionsForNote(noteId);
+                        scheduleSave();
+                    },
+                    redo: () => {
+                        const board = boards[boardIdx];
+                        const note = board.notes.find(n => n.id === noteId);
+                        if (!note) return;
+                        note.x = newX; note.y = newY;
+                        updateNoteElement(note);
+                        updateConnectionsForNote(noteId);
+                        scheduleSave();
+                    }
+                };
+            }
+
+            function makeAddConnectionCmd(connId, boardIdx, fromId, toId, color, type) {
+                return {
+                    timestamp: Date.now(),
+                    description: 'Add Connection',
+                    noteIds: [fromId, toId],
+                    undo: () => {
+                        const board = boards[boardIdx];
+                        const conn = (board.connections||[]).find(c => c.id === connId);
+                        if (!conn) return;
+                        const n1 = board.notes.find(n => n.id === fromId);
+                        const n2 = board.notes.find(n => n.id === toId);
+                        if (n1) n1.connections = n1.connections.filter(c => c !== connId);
+                        if (n2) n2.connections = n2.connections.filter(c => c !== connId);
+                        board.connections = board.connections.filter(c => c.id !== connId);
+                        updateAllConnections();
+                        scheduleSave();
+                    },
+                    redo: () => {
+                        const board = boards[boardIdx];
+                        if (board.connections.some(c => c.id === connId)) return;
+                        board.connections.push({ id: connId, fromNoteId: fromId, toNoteId: toId, color, type });
+                        const n1 = board.notes.find(n => n.id === fromId);
+                        const n2 = board.notes.find(n => n.id === toId);
+                        if (n1) n1.connections.push(connId);
+                        if (n2) n2.connections.push(connId);
+                        updateAllConnections();
+                        scheduleSave();
+                    }
+                };
+            }
+
+            function makeRemoveConnectionCmd(connId, boardIdx, connData) {
+                return {
+                    timestamp: Date.now(),
+                    description: 'Remove Connection',
+                    noteIds: [connData.fromNoteId, connData.toNoteId],
+                    undo: () => {
+                        const board = boards[boardIdx];
+                        board.connections.push(connData);
+                        const n1 = board.notes.find(n => n.id === connData.fromNoteId);
+                        const n2 = board.notes.find(n => n.id === connData.toNoteId);
+                        if (n1) n1.connections.push(connId);
+                        if (n2) n2.connections.push(connId);
+                        updateAllConnections();
+                        scheduleSave();
+                    },
+                    redo: () => {
+                        const board = boards[boardIdx];
+                        const conn = (board.connections||[]).find(c => c.id === connId);
+                        if (!conn) return;
+                        const n1 = board.notes.find(n => n.id === conn.fromNoteId);
+                        const n2 = board.notes.find(n => n.id === conn.toNoteId);
+                        if (n1) n1.connections = n1.connections.filter(c => c !== connId);
+                        if (n2) n2.connections = n2.connections.filter(c => c !== connId);
+                        board.connections = board.connections.filter(c => c.id !== connId);
+                        updateAllConnections();
+                        scheduleSave();
+                    }
+                };
+            }
 
             // ─── DOM references ──────────────────────────
             const boardContainer = document.getElementById('board-container');
@@ -557,6 +857,7 @@ or commercial use is prohibited.
             const contextMenu = document.getElementById('context-menu');
             const customizationPopup = document.getElementById('customization-popup');
             const connCustomizationPopup = document.getElementById('conn-customization-popup');
+            const tagAssignPopup = document.getElementById('tag-assign-popup');
             const returnBtn = document.getElementById('return-to-star-btn');
             const toast = document.getElementById('toast');
             const importFileInput = document.getElementById('import-file-input');
@@ -576,6 +877,8 @@ or commercial use is prohibited.
             const connLineType = document.getElementById('conn-line-type');
             const disconnectMainItem = document.getElementById('disconnect-main-item');
             const disconnectSubmenuWrapper = document.getElementById('disconnect-submenu-wrapper');
+            const tagAssignCloseBtn = document.getElementById('tag-assign-popup-close-btn');
+            const tagAssignList = document.getElementById('tag-assign-list');
             const searchInput = document.getElementById('search-input');
             const searchResults = document.getElementById('search-results');
             const statsContent = document.getElementById('stats-content');
@@ -585,21 +888,27 @@ or commercial use is prohibited.
             const statsModal = document.getElementById('stats-modal');
             const markedNotesModal = document.getElementById('marked-notes-modal');
             const markedNotesContent = document.getElementById('marked-notes-content');
+            const manageTagsModal = document.getElementById('manage-tags-modal');
+            const manageTagsContent = document.getElementById('manage-tags-content');
+            const changeHistoryModal = document.getElementById('change-history-modal');
+            const changeHistoryContent = document.getElementById('change-history-content');
+            const undoBtn = document.getElementById('undo-btn');
+            const redoBtn = document.getElementById('redo-btn');
 
-            // ─── Audio ────────────────────────────────────
             let audioCtx=null;
             const play=(type)=>{ try{ if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==='suspended') audioCtx.resume(); const n=audioCtx.currentTime; if(type==='click'){const o=audioCtx.createOscillator();o.type='sine';o.frequency.setValueAtTime(800,n);o.frequency.exponentialRampToValueAtTime(400,n+0.08);const g=audioCtx.createGain();g.gain.setValueAtTime(0.2,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.1);o.connect(g);g.connect(audioCtx.destination);o.start(n);o.stop(n+0.1);} else if(type==='pop'){const o=audioCtx.createOscillator();o.type='triangle';o.frequency.setValueAtTime(600,n);o.frequency.exponentialRampToValueAtTime(150,n+0.15);const g=audioCtx.createGain();g.gain.setValueAtTime(0.25,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.18);o.connect(g);g.connect(audioCtx.destination);o.start(n);o.stop(n+0.18);} else if(type==='star'){const o=audioCtx.createOscillator();o.type='sine';o.frequency.setValueAtTime(1046.5,n);const g=audioCtx.createGain();g.gain.setValueAtTime(0.3,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.2);o.connect(g);g.connect(audioCtx.destination);o.start(n);o.stop(n+0.2);} else if(type==='like'){const o=audioCtx.createOscillator();o.type='sine';o.frequency.setValueAtTime(659.25,n);o.frequency.setValueAtTime(783.99,n+0.1);const g=audioCtx.createGain();g.gain.setValueAtTime(0.3,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.25);o.connect(g);g.connect(audioCtx.destination);o.start(n);o.stop(n+0.25);} else if(type==='dislike'){const o=audioCtx.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(311.13,n);o.frequency.setValueAtTime(233.08,n+0.12);const g=audioCtx.createGain();g.gain.setValueAtTime(0.2,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.25);o.connect(g);g.connect(audioCtx.destination);o.start(n);o.stop(n+0.25);} else if(type==='return'){const o1=audioCtx.createOscillator();o1.type='sine';o1.frequency.value=523.25;const o2=audioCtx.createOscillator();o2.type='sine';o2.frequency.value=659.25;const g=audioCtx.createGain();g.gain.setValueAtTime(0.3,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.4);o1.connect(g);o2.connect(g);g.connect(audioCtx.destination);o1.start(n);o2.start(n);o1.stop(n+0.4);o2.stop(n+0.4);} }catch(e){} };
 
             let toastTimeout;
             const showToast=(msg)=>{toast.textContent=msg;toast.classList.add('show');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>toast.classList.remove('show'),2000);};
 
-            // ─── State ────────────────────────────────────
             let boards=[],activeBoardIdx=0,viewX=0,viewY=0,zoom=1;
             const BOARD_CENTER=5000,MIN_ZOOM=0.2,MAX_ZOOM=4;
-            let connectingFromId=null,contextMenuTargetId=null,customizationTargetId=null,connCustomizationTargetId=null;
+            let connectingFromId=null,contextMenuTargetId=null,customizationTargetId=null,connCustomizationTargetId=null,tagAssignTargetId=null;
             let showTags=false;
             let globalZCounter = 10;
             let copiedNoteData = null;
+            let preEditNoteSnapshot = null;
+            let hoveredTagId = null;
 
             let isPanning=false,isDraggingNote=false,dragNoteId=null;
             let dragStartX=0,dragStartY=0,dragNoteOrigX=0,dragNoteOrigY=0;
@@ -614,7 +923,6 @@ or commercial use is prohibited.
 
             const getBoard=()=>boards[activeBoardIdx];
 
-            // ─── Saving (debounced, robust) ──────────────
             let saveTimeout=null;
             function saveImmediate() {
                 try {
@@ -634,14 +942,11 @@ or commercial use is prohibited.
                     saveTimeout = null;
                 }, 300);
             }
-
-            // Flush on page unload
             window.addEventListener('beforeunload', () => {
                 if (saveTimeout) clearTimeout(saveTimeout);
                 saveImmediate();
             });
 
-            // ─── Validation & Repair ──────────────────────
             function validateNote(note) {
                 if (!note || typeof note !== 'object') return false;
                 note.id = note.id || ('n' + Date.now() + Math.random());
@@ -659,6 +964,7 @@ or commercial use is prohibited.
                 note.connections = Array.isArray(note.connections) ? note.connections : [];
                 note.tag = note.tag || generateTag();
                 note.zIndex = isNum(note.zIndex) ? note.zIndex : 10;
+                note.tags = Array.isArray(note.tags) ? note.tags : [];
                 return true;
             }
 
@@ -669,25 +975,30 @@ or commercial use is prohibited.
                 board.notes = Array.isArray(board.notes) ? board.notes : [];
                 board.noteIdCounter = isNum(board.noteIdCounter) ? Math.max(0, board.noteIdCounter) : 0;
                 board.connections = Array.isArray(board.connections) ? board.connections : [];
+                board.tags = Array.isArray(board.tags) ? board.tags : [];
                 board.viewX = isNum(board.viewX) ? board.viewX : 0;
                 board.viewY = isNum(board.viewY) ? board.viewY : 0;
                 board.zoom = isNum(board.zoom) ? clamp(board.zoom, MIN_ZOOM, MAX_ZOOM) : 1;
-                // validate each note
                 board.notes.forEach(n => validateNote(n));
-                // repair orphan connections
                 const validIds = new Set(board.notes.map(n => n.id));
                 board.connections = board.connections.filter(c => {
                     return c && validIds.has(c.fromNoteId) && validIds.has(c.toNoteId);
                 });
-                // repair note connection arrays (remove non-existing connIds)
                 const connIds = new Set(board.connections.map(c => c.id));
                 board.notes.forEach(n => {
                     n.connections = n.connections.filter(cid => connIds.has(cid));
+                    if (!n.tags) n.tags = [];
                 });
                 return true;
             }
 
-            // ─── Connection rendering (shared) ────────────
+            function getTagById(tagId) {
+                const board = getBoard();
+                return (board.tags||[]).find(t => t.id === tagId);
+            }
+            function generateTagId() { return 'tag-' + Date.now() + Math.random().toString(36).substr(2,5); }
+
+            // ─── Connection rendering ─────────────────────
             function buildWavyPath(x1,y1,x2,y2) {
                 const dx=x2-x1,dy=y2-y1,dist=Math.sqrt(dx*dx+dy*dy)||1;
                 const perpX=-dy/dist,perpY=dx/dist;
@@ -749,12 +1060,10 @@ or commercial use is prohibited.
                 const board = getBoard();
                 const note = board.notes.find(n => n.id === noteId);
                 if (!note) return;
-                // remove old paths for this note's connections
                 note.connections.forEach(connId => {
                     const existing = connectionsSvg.querySelector(`path[data-conn-id="${connId}"]`);
                     if (existing) existing.remove();
                 });
-                // redraw each connection
                 note.connections.forEach(connId => {
                     const conn = (board.connections || []).find(c => c.id === connId);
                     if (!conn) return;
@@ -765,7 +1074,6 @@ or commercial use is prohibited.
                 });
             }
 
-            // ─── Board transform (RAF‑based) ─────────────
             let rafPending = false;
             function scheduleBoardUpdate() {
                 if (!rafPending) {
@@ -785,17 +1093,11 @@ or commercial use is prohibited.
 
             const screenToBoard=(sx,sy)=>{
                 const rect = boardContainer.getBoundingClientRect();
-                return {
-                    x: (sx - rect.left - viewX) / (zoom || 1),
-                    y: (sy - rect.top - viewY) / (zoom || 1)
-                };
+                return { x: (sx - rect.left - viewX) / (zoom || 1), y: (sy - rect.top - viewY) / (zoom || 1) };
             };
             const boardToScreen=(bx,by)=>{
                 const rect = boardContainer.getBoundingClientRect();
-                return {
-                    x: bx * zoom + viewX + rect.left,
-                    y: by * zoom + viewY + rect.top
-                };
+                return { x: bx * zoom + viewX + rect.left, y: by * zoom + viewY + rect.top };
             };
 
             const createNote=(x,y,title='New Note',color='yellow',font="'Segoe UI', system-ui, sans-serif",sizeScale=1,fontSize=1,direction='ltr',content='')=>{
@@ -803,7 +1105,7 @@ or commercial use is prohibited.
                 if(typeof board.noteIdCounter!=='number') board.noteIdCounter=0;
                 const id='n'+(++board.noteIdCounter);
                 const zIndex = ++globalZCounter;
-                const note={id,x:isNum(x)?x:0,y:isNum(y)?y:0,title,color,font,sizeScale,fontSize,starred:false,liked:false,disliked:false,direction,connections:[],tag:generateTag(),zIndex};
+                const note={id,x:isNum(x)?x:0,y:isNum(y)?y:0,title,color,font,sizeScale,fontSize,starred:false,liked:false,disliked:false,direction,connections:[],tag:generateTag(),zIndex,tags:[]};
                 board.notes.push(note);
                 renderNoteElement(note);
                 if(content){
@@ -811,6 +1113,7 @@ or commercial use is prohibited.
                     if(ta) ta.value = content;
                 }
                 updateAllConnections();
+                undoMgr.push(makeCreateNoteCmd(id, activeBoardIdx));
                 scheduleSave();
                 return note;
             };
@@ -831,9 +1134,16 @@ or commercial use is prohibited.
                 el.style.zIndex = note.zIndex || 10;
                 el.dir=note.direction||'ltr';
                 const hc=NOTE_HEADER[note.color]||'#fde68a';
+                const tagDots = (note.tags||[]).map(tagId => {
+                    const tag = getTagById(tagId);
+                    if (!tag) return '';
+                    return `<span class="note-tag-dot" style="background:${tag.color||'#ccc'};" data-tag-id="${tag.id}" title="${escapeHtml(tag.name)}"></span>`;
+                }).join('');
                 el.innerHTML=`<div class="tag-badge">${note.tag}</div>
+                    <div class="tag-popdown"></div>
                     <div class="note-header" style="background:${hc}">
                         <span class="note-title-text">${escapeHtml(note.title)}</span>
+                        <div class="note-tags">${tagDots}</div>
                         <button class="star-btn">${svgIcon('star',20)}</button>
                         <button class="like-btn">${svgIcon('like',20)}</button>
                         <button class="dislike-btn">${svgIcon('dislike',20)}</button>
@@ -845,6 +1155,17 @@ or commercial use is prohibited.
                 el.addEventListener('mousedown',(e)=>onNoteMouseDown(e,note.id));
                 el.addEventListener('touchstart',(e)=>onNoteTouchStart(e,note.id),{passive:false});
                 el.addEventListener('contextmenu',(e)=>{e.preventDefault();onNoteContextMenu(e,note.id);});
+                // Tag dot hover events
+                el.querySelectorAll('.note-tag-dot').forEach(dot => {
+                    dot.addEventListener('mouseenter', () => {
+                        hoveredTagId = dot.dataset.tagId;
+                        updateTagTooltips(hoveredTagId);
+                    });
+                    dot.addEventListener('mouseleave', () => {
+                        hoveredTagId = null;
+                        updateTagTooltips(null);
+                    });
+                });
                 boardEl.appendChild(el);
                 if(showTags) el.querySelector('.tag-badge').classList.add('visible');
             };
@@ -867,71 +1188,127 @@ or commercial use is prohibited.
                 el.querySelector('.star-btn').innerHTML=svgIcon('star',20);
                 el.querySelector('.like-btn').innerHTML=svgIcon('like',20);
                 el.querySelector('.dislike-btn').innerHTML=svgIcon('dislike',20);
+                const tagDotsContainer = el.querySelector('.note-tags');
+                if (tagDotsContainer) {
+                    tagDotsContainer.innerHTML = (note.tags||[]).map(tagId => {
+                        const tag = getTagById(tagId);
+                        if (!tag) return '';
+                        return `<span class="note-tag-dot" style="background:${tag.color||'#ccc'};" data-tag-id="${tag.id}" title="${escapeHtml(tag.name)}"></span>`;
+                    }).join('');
+                    // Reattach hover events to dots
+                    el.querySelectorAll('.note-tag-dot').forEach(dot => {
+                        dot.addEventListener('mouseenter', () => {
+                            hoveredTagId = dot.dataset.tagId;
+                            updateTagTooltips(hoveredTagId);
+                        });
+                        dot.addEventListener('mouseleave', () => {
+                            hoveredTagId = null;
+                            updateTagTooltips(null);
+                        });
+                    });
+                }
                 const badge=el.querySelector('.tag-badge');
                 if(badge){badge.textContent=note.tag;badge.classList.toggle('visible',showTags);}
+                // Ensure popdown exists
+                if (!el.querySelector('.tag-popdown')) {
+                    const pd = document.createElement('div');
+                    pd.className = 'tag-popdown';
+                    el.appendChild(pd);
+                }
             };
 
-            const bringToFront=(noteId)=>{
-                const note=getBoard().notes.find(n=>n.id===noteId);
-                if(!note) return;
-                note.zIndex = ++globalZCounter;
-                updateNoteElement(note);
-                scheduleSave();
-            };
-            const sendToBack=(noteId)=>{
-                const note=getBoard().notes.find(n=>n.id===noteId);
-                if(!note) return;
-                const board=getBoard();
-                const minZ = Math.min(...board.notes.map(n=>n.zIndex||10), 10);
-                note.zIndex = Math.max(1, minZ - 1);
-                updateNoteElement(note);
-                scheduleSave();
-            };
+            function updateTagTooltips(tagId) {
+                document.querySelectorAll('.sticky-note').forEach(noteEl => {
+                    const popdown = noteEl.querySelector('.tag-popdown');
+                    if (!popdown) return;
+                    const noteId = noteEl.getAttribute('data-note-id');
+                    const note = getBoard().notes.find(n => n.id === noteId);
+                    if (!note) return;
+                    if (tagId && note.tags.includes(tagId)) {
+                        const tag = getTagById(tagId);
+                        if (tag) {
+                            popdown.textContent = tag.name;
+                            popdown.style.backgroundColor = tag.color || '#6366f1';
+                            popdown.classList.add('visible');
+                        }
+                    } else {
+                        popdown.classList.remove('visible');
+                    }
+                });
+            }
+
+            const bringToFront=(noteId)=>{ const note=getBoard().notes.find(n=>n.id===noteId); if(!note) return; note.zIndex = ++globalZCounter; updateNoteElement(note); scheduleSave(); };
+            const sendToBack=(noteId)=>{ const note=getBoard().notes.find(n=>n.id===noteId); if(!note) return; const board=getBoard(); const minZ = Math.min(...board.notes.map(n=>n.zIndex||10), 10); note.zIndex = Math.max(1, minZ - 1); updateNoteElement(note); scheduleSave(); };
 
             btnBringFront.addEventListener('click',()=>{if(customizationTargetId){bringToFront(customizationTargetId);showToast('Brought to front');play('pop');}});
             btnSendBack.addEventListener('click',()=>{if(customizationTargetId){sendToBack(customizationTargetId);showToast('Sent to back');play('pop');}});
 
-            const toggleStar=(noteId)=>{
-                const note=getBoard().notes.find(n=>n.id===noteId);
+            const toggleStar=(noteId)=>{ const note=getBoard().notes.find(n=>n.id===noteId); if(!note) return; note.starred=!note.starred; updateNoteElement(note); updateReturnBtn(); play('star'); scheduleSave(); };
+            const toggleLike=(noteId)=>{ const note=getBoard().notes.find(n=>n.id===noteId); if(!note) return; note.liked=!note.liked; updateNoteElement(note); play('like'); scheduleSave(); };
+            const toggleDislike=(noteId)=>{ const note=getBoard().notes.find(n=>n.id===noteId); if(!note) return; note.disliked=!note.disliked; updateNoteElement(note); play('dislike'); scheduleSave(); };
+
+            const deleteNote=(id)=>{
+                const board=getBoard();
+                const note=board.notes.find(n=>n.id===id);
                 if(!note) return;
-                note.starred=!note.starred;
-                updateNoteElement(note);
-                updateReturnBtn();
-                play('star');
-                scheduleSave();
-            };
-            const toggleLike=(noteId)=>{
-                const note=getBoard().notes.find(n=>n.id===noteId);
-                if(!note) return;
-                note.liked=!note.liked;
-                updateNoteElement(note);
-                play('like');
-                scheduleSave();
-            };
-            const toggleDislike=(noteId)=>{
-                const note=getBoard().notes.find(n=>n.id===noteId);
-                if(!note) return;
-                note.disliked=!note.disliked;
-                updateNoteElement(note);
-                play('dislike');
-                scheduleSave();
+                const noteData = deepCloneNote(note);
+                [...note.connections].forEach(cid=>removeConnectionInternal(cid));
+                document.querySelector(`[data-note-id="${id}"]`)?.remove();
+                board.notes=board.notes.filter(n=>n.id!==id);
+                updateAllConnections();
+                closeAllPopups();
+                undoMgr.push(makeDeleteNoteCmd(id, activeBoardIdx, noteData));
+                saveImmediate();
             };
 
-            const deleteNote=(id)=>{const board=getBoard();const note=board.notes.find(n=>n.id===id);if(!note) return;[...note.connections].forEach(cid=>removeConnection(cid));document.querySelector(`[data-note-id="${id}"]`)?.remove();board.notes=board.notes.filter(n=>n.id!==id);updateAllConnections();closeAllPopups();saveImmediate();};
-            const addConnection=(fromId,toId,color='#a5b4fc',type='curved')=>{const board=getBoard();if(!board.connections) board.connections=[];const exist=board.connections.find(c=>(c.fromNoteId===fromId&&c.toNoteId===toId)||(c.fromNoteId===toId&&c.toNoteId===fromId));if(exist) return null;const connId='conn-'+Date.now()+'-'+Math.random().toString(36).substr(2,6);const conn={id:connId,fromNoteId:fromId,toNoteId:toId,color,type};board.connections.push(conn);const n1=board.notes.find(n=>n.id===fromId),n2=board.notes.find(n=>n.id===toId);if(n1)n1.connections.push(connId);if(n2)n2.connections.push(connId);updateAllConnections();scheduleSave();return connId;};
-            const removeConnection=(connId)=>{const board=getBoard();const conn=(board.connections||[]).find(c=>c.id===connId);if(!conn) return;const n1=board.notes.find(n=>n.id===conn.fromNoteId),n2=board.notes.find(n=>n.id===conn.toNoteId);if(n1)n1.connections=n1.connections.filter(c=>c!==connId);if(n2)n2.connections=n2.connections.filter(c=>c!==connId);board.connections=board.connections.filter(c=>c.id!==connId);updateAllConnections();scheduleSave();};
+            const addConnection=(fromId,toId,color='#a5b4fc',type='curved')=>{
+                const board=getBoard();
+                if(!board.connections) board.connections=[];
+                const exist=board.connections.find(c=>(c.fromNoteId===fromId&&c.toNoteId===toId)||(c.fromNoteId===toId&&c.toNoteId===fromId));
+                if(exist) return null;
+                const connId='conn-'+Date.now()+'-'+Math.random().toString(36).substr(2,6);
+                const conn={id:connId,fromNoteId:fromId,toNoteId:toId,color,type};
+                board.connections.push(conn);
+                const n1=board.notes.find(n=>n.id===fromId),n2=board.notes.find(n=>n.id===toId);
+                if(n1)n1.connections.push(connId);
+                if(n2)n2.connections.push(connId);
+                updateAllConnections();
+                undoMgr.push(makeAddConnectionCmd(connId, activeBoardIdx, fromId, toId, color, type));
+                scheduleSave();
+                return connId;
+            };
+
+            const removeConnectionInternal=(connId)=>{
+                const board=getBoard();
+                const conn=(board.connections||[]).find(c=>c.id===connId);
+                if(!conn) return;
+                const n1=board.notes.find(n=>n.id===conn.fromNoteId),n2=board.notes.find(n=>n.id===conn.toNoteId);
+                if(n1)n1.connections=n1.connections.filter(c=>c!==connId);
+                if(n2)n2.connections=n2.connections.filter(c=>c!==connId);
+                board.connections=board.connections.filter(c=>c.id!==connId);
+            };
+
+            const removeConnection=(connId)=>{
+                const board=getBoard();
+                const conn=(board.connections||[]).find(c=>c.id===connId);
+                if(!conn) return;
+                const connData = {...conn};
+                removeConnectionInternal(connId);
+                updateAllConnections();
+                undoMgr.push(makeRemoveConnectionCmd(connId, activeBoardIdx, connData));
+                scheduleSave();
+            };
 
             const updateReturnBtn=()=>returnBtn.disabled=getBoard().notes.filter(n=>n.starred).length===0;
             const animateToNote=(note)=>{const rect=boardContainer.getBoundingClientRect();const tx=note.x+note.sizeScale*110,ty=note.y+note.sizeScale*70;const targetZoom=Math.min(Math.max(zoom,0.6),1.5);const newViewX=rect.width/2-tx*targetZoom,newViewY=rect.height/2-ty*targetZoom;const startX=viewX,startY=viewY,startZoom=zoom;const startTime=performance.now();const step=(now)=>{const p=Math.min((now-startTime)/600,1);const e=1-Math.pow(1-p,3);viewX=startX+(newViewX-startX)*e;viewY=startY+(newViewY-startY)*e;zoom=startZoom+(targetZoom-startZoom)*e;updateTransform(false);if(p<1) requestAnimationFrame(step);else{viewX=newViewX;viewY=newViewY;zoom=targetZoom;updateTransform(false);}};requestAnimationFrame(step);play('return');};
             const animateToNearestStarred=()=>{const board=getBoard();const starred=board.notes.filter(n=>n.starred);if(!starred.length){showToast('No starred notes');return;}const rect=boardContainer.getBoundingClientRect();const centerX=(rect.width/2-viewX)/zoom,centerY=(rect.height/2-viewY)/zoom;let closest=starred[0],minDist=Infinity;starred.forEach(n=>{const dx=(n.x+n.sizeScale*110)-centerX,dy=(n.y+n.sizeScale*70)-centerY;const d=dx*dx+dy*dy;if(d<minDist){minDist=d;closest=n;}});animateToNote(closest);showToast('Returning to nearest starred note');};
             returnBtn.addEventListener('click',animateToNearestStarred);
 
-            const closeAllPopups=()=>{hideContextMenu();hideCustomizationPopup();hideConnCustomizationPopup();};
-
+            const closeAllPopups=()=>{hideContextMenu();hideCustomizationPopup();hideConnCustomizationPopup();hideTagAssignPopup();};
             const showContextMenu=(sx,sy,noteId=null)=>{
                 contextMenuTargetId=noteId;
                 contextMenu.style.left=Math.min(sx,innerWidth-250)+'px';
-                contextMenu.style.top=Math.min(sy,innerHeight-500)+'px';
+                contextMenu.style.top=Math.min(sy,innerHeight-650)+'px';
                 disconnectSubmenuWrapper.classList.remove('expanded');
                 disconnectMainItem.classList.remove('expanded');
                 disconnectSubmenuWrapper.innerHTML = '';
@@ -962,7 +1339,6 @@ or commercial use is prohibited.
                 contextMenu.classList.add('active');play('click');
             };
             const hideContextMenu=()=>{contextMenu.classList.remove('active');disconnectSubmenuWrapper.classList.remove('expanded');disconnectMainItem.classList.remove('expanded');};
-
             disconnectMainItem.addEventListener('click',(e)=>{
                 e.stopPropagation();
                 const isExpanded = disconnectSubmenuWrapper.classList.contains('expanded');
@@ -978,6 +1354,7 @@ or commercial use is prohibited.
             const showCustomizationPopup=(noteId)=>{
                 const note=getBoard().notes.find(n=>n.id===noteId);
                 if(!note) return;
+                preEditNoteSnapshot = deepCloneNote(note);
                 customizationTargetId=noteId;
                 popupTitle.value=note.title;popupFont.value=note.font;popupDirection.value=note.direction||'ltr';
                 popupSize.value=note.sizeScale;popupFontSize.value=note.fontSize;
@@ -991,7 +1368,23 @@ or commercial use is prohibited.
                 customizationPopup.style.left=px+'px';customizationPopup.style.top=py+'px';
                 customizationPopup.classList.add('active');play('click');
             };
-            const hideCustomizationPopup=()=>customizationPopup.classList.remove('active');
+            const hideCustomizationPopup=()=>{
+                customizationPopup.classList.remove('active');
+                if (customizationTargetId && preEditNoteSnapshot) {
+                    const note = getBoard().notes.find(n => n.id === customizationTargetId);
+                    if (note) {
+                        const after = deepCloneNote(note);
+                        const before = preEditNoteSnapshot;
+                        if (before.title !== after.title || before.color !== after.color || before.font !== after.font ||
+                            before.sizeScale !== after.sizeScale || before.fontSize !== after.fontSize || before.direction !== after.direction) {
+                            undoMgr.push(makeEditNoteCmd(customizationTargetId, activeBoardIdx, before, after));
+                            scheduleSave();
+                        }
+                    }
+                    preEditNoteSnapshot = null;
+                }
+                customizationTargetId=null;
+            };
 
             const showConnCustomizationPopup=(sx,sy,connId)=>{
                 connCustomizationTargetId=connId;
@@ -1005,6 +1398,47 @@ or commercial use is prohibited.
             };
             const hideConnCustomizationPopup=()=>connCustomizationPopup.classList.remove('active');
 
+            const showTagAssignPopup=(noteId)=>{
+                tagAssignTargetId=noteId;
+                const note = getBoard().notes.find(n=>n.id===noteId);
+                if (!note) return;
+                const board = getBoard();
+                const tags = board.tags || [];
+                tagAssignList.innerHTML = tags.map(tag => {
+                    const checked = note.tags.includes(tag.id);
+                    return `<div class="tag-assign-item">
+                        <input type="checkbox" class="tag-assign-checkbox" data-tag-id="${tag.id}" ${checked?'checked':''}>
+                        <span style="width:12px;height:12px;border-radius:50%;background:${tag.color||'#ccc'};"></span>
+                        <span>${escapeHtml(tag.name)}</span>
+                    </div>`;
+                }).join('');
+                if (tags.length === 0) tagAssignList.innerHTML = '<p style="opacity:0.5;">No tags created. Use Tools → Manage Tags.</p>';
+                const bounds = boardToScreen(note.x+note.sizeScale*110, note.y);
+                tagAssignPopup.style.left = Math.min(bounds.x, innerWidth-300)+'px';
+                tagAssignPopup.style.top = Math.min(bounds.y, innerHeight-400)+'px';
+                tagAssignPopup.classList.add('active');
+                play('click');
+            };
+            const hideTagAssignPopup=()=>{
+                tagAssignPopup.classList.remove('active');
+                if (tagAssignTargetId) {
+                    const note = getBoard().notes.find(n=>n.id===tagAssignTargetId);
+                    if (note) {
+                        const checkboxes = tagAssignList.querySelectorAll('input[type="checkbox"]');
+                        const newTags = [];
+                        checkboxes.forEach(cb => { if (cb.checked) newTags.push(cb.dataset.tagId); });
+                        const oldTags = [...(note.tags||[])];
+                        if (JSON.stringify(newTags.sort()) !== JSON.stringify(oldTags.sort())) {
+                            note.tags = newTags;
+                            updateNoteElement(note);
+                            scheduleSave();
+                        }
+                    }
+                    tagAssignTargetId = null;
+                }
+            };
+            tagAssignCloseBtn.addEventListener('click', hideTagAssignPopup);
+
             contextMenu.addEventListener('click',(e)=>{
                 const item=e.target.closest('.context-menu-item');
                 if(!item) return;
@@ -1017,39 +1451,49 @@ or commercial use is prohibited.
                     const note=getBoard().notes.find(n=>n.id===contextMenuTargetId);
                     if(note){
                         const ta=document.querySelector(`[data-note-id="${note.id}"] textarea`);
-                        copiedNoteData = {
-                            title: note.title,
-                            color: note.color,
-                            font: note.font,
-                            sizeScale: note.sizeScale,
-                            fontSize: note.fontSize,
-                            direction: note.direction,
-                            content: ta ? ta.value : ''
-                        };
+                        copiedNoteData = { title: note.title, color: note.color, font: note.font, sizeScale: note.sizeScale, fontSize: note.fontSize, direction: note.direction, content: ta ? ta.value : '' };
                         showToast('Note copied');play('pop');
                     }
                 }else if(action==='paste-note'){
                     if(copiedNoteData){
                         const bp=screenToBoard(contextMenu.getBoundingClientRect().left+120,contextMenu.getBoundingClientRect().top+140);
-                        const newNote = createNote(bp.x-110+20, bp.y-70+20, copiedNoteData.title, copiedNoteData.color, copiedNoteData.font, copiedNoteData.sizeScale, copiedNoteData.fontSize, copiedNoteData.direction);
+                        createNote(bp.x-110+20, bp.y-70+20, copiedNoteData.title, copiedNoteData.color, copiedNoteData.font, copiedNoteData.sizeScale, copiedNoteData.fontSize, copiedNoteData.direction);
+                        const newNote = getBoard().notes[getBoard().notes.length-1];
                         const ta=document.querySelector(`[data-note-id="${newNote.id}"] textarea`);
                         if(ta) ta.value = copiedNoteData.content;
                         showToast('Note pasted');play('pop');
-                    }else{
-                        showToast('Nothing copied');
-                    }
+                    }else{ showToast('Nothing copied'); }
                 }
-                else if(action==='delete-note'&&contextMenuTargetId){deleteNote(contextMenuTargetId);showToast('Note deleted');play('pop');}
+                else if(action==='tag-note'&&contextMenuTargetId){ showTagAssignPopup(contextMenuTargetId); }
+                else if(action==='change-history'&&contextMenuTargetId){ showChangeHistory(contextMenuTargetId); }
+                else if(action==='delete-note'&&contextMenuTargetId){ deleteNote(contextMenuTargetId);showToast('Note deleted');play('pop'); }
                 hideContextMenu();
             });
 
+            function showChangeHistory(noteId) {
+                const history = undoMgr.getHistoryForNote(noteId);
+                changeHistoryContent.innerHTML = '';
+                if (history.length === 0) {
+                    changeHistoryContent.innerHTML = '<p>No recorded changes for this note.</p>';
+                } else {
+                    history.reverse().forEach(cmd => {
+                        const item = document.createElement('div');
+                        item.className = 'history-item';
+                        item.innerHTML = `<span style="opacity:0.7;font-size:0.8rem;">${new Date(cmd.timestamp).toLocaleString()}</span> <span>${cmd.description}</span>`;
+                        changeHistoryContent.appendChild(item);
+                    });
+                }
+                changeHistoryModal.classList.add('active');
+                play('click');
+            }
+
             popupCloseBtn.addEventListener('click',hideCustomizationPopup);
-            popupTitle.addEventListener('input',()=>{if(customizationTargetId){const note=getBoard().notes.find(n=>n.id===customizationTargetId);if(note){note.title=popupTitle.value||'Untitled';updateNoteElement(note);scheduleSave();}}});
-            popupFont.addEventListener('change',()=>{if(customizationTargetId){const note=getBoard().notes.find(n=>n.id===customizationTargetId);if(note){note.font=popupFont.value;updateNoteElement(note);scheduleSave();}}});
-            popupDirection.addEventListener('change',()=>{if(customizationTargetId){const note=getBoard().notes.find(n=>n.id===customizationTargetId);if(note){note.direction=popupDirection.value;updateNoteElement(note);scheduleSave();}}});
-            popupSize.addEventListener('input',()=>{const val=parseFloat(popupSize.value);sizeLabel.textContent=val<0.8?'Small':val<1.2?'Medium':val<1.6?'Large':'XL';if(customizationTargetId){const note=getBoard().notes.find(n=>n.id===customizationTargetId);if(note){note.sizeScale=val;updateNoteElement(note);updateConnectionsForNote(note.id);scheduleSave();}}});
-            popupFontSize.addEventListener('input',()=>{const val=parseFloat(popupFontSize.value);fontsizeLabel.textContent=val.toFixed(1)+'rem';if(customizationTargetId){const note=getBoard().notes.find(n=>n.id===customizationTargetId);if(note){note.fontSize=val;updateNoteElement(note);scheduleSave();}}});
-            colorSwatches.addEventListener('click',(e)=>{const sw=e.target.closest('.color-swatch');if(!sw||!customizationTargetId) return;const note=getBoard().notes.find(n=>n.id===customizationTargetId);if(note){note.color=sw.dataset.color;updateNoteElement(note);colorSwatches.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('selected'));sw.classList.add('selected');scheduleSave();}});
+            popupTitle.addEventListener('input',()=>{if(customizationTargetId){const note=getBoard().notes.find(n=>n.id===customizationTargetId);if(note){note.title=popupTitle.value||'Untitled';updateNoteElement(note);}}});
+            popupFont.addEventListener('change',()=>{if(customizationTargetId){const note=getBoard().notes.find(n=>n.id===customizationTargetId);if(note){note.font=popupFont.value;updateNoteElement(note);}}});
+            popupDirection.addEventListener('change',()=>{if(customizationTargetId){const note=getBoard().notes.find(n=>n.id===customizationTargetId);if(note){note.direction=popupDirection.value;updateNoteElement(note);}}});
+            popupSize.addEventListener('input',()=>{const val=parseFloat(popupSize.value);sizeLabel.textContent=val<0.8?'Small':val<1.2?'Medium':val<1.6?'Large':'XL';if(customizationTargetId){const note=getBoard().notes.find(n=>n.id===customizationTargetId);if(note){note.sizeScale=val;updateNoteElement(note);updateConnectionsForNote(note.id);}}});
+            popupFontSize.addEventListener('input',()=>{const val=parseFloat(popupFontSize.value);fontsizeLabel.textContent=val.toFixed(1)+'rem';if(customizationTargetId){const note=getBoard().notes.find(n=>n.id===customizationTargetId);if(note){note.fontSize=val;updateNoteElement(note);}}});
+            colorSwatches.addEventListener('click',(e)=>{const sw=e.target.closest('.color-swatch');if(!sw||!customizationTargetId) return;const note=getBoard().notes.find(n=>n.id===customizationTargetId);if(note){note.color=sw.dataset.color;updateNoteElement(note);colorSwatches.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('selected'));sw.classList.add('selected');}});
 
             connPopupCloseBtn.addEventListener('click',hideConnCustomizationPopup);
             connLineType.addEventListener('change',()=>{if(connCustomizationTargetId){const conn=(getBoard().connections||[]).find(c=>c.id===connCustomizationTargetId);if(conn){conn.type=connLineType.value;updateAllConnections();scheduleSave();}}});
@@ -1100,15 +1544,78 @@ or commercial use is prohibited.
                         markedNotesContent.appendChild(groupDiv);
                     }
                 }
-                markedNotesModal.classList.add('active');
+                markedNotesModal.classList.add('active');document.querySelectorAll('.dropdown-panel').forEach(p=>p.classList.remove('show'));
+            });
+            document.querySelector('[data-action="manage-tags"]').addEventListener('click',()=>{
+                renderManageTags();
+                manageTagsModal.classList.add('active');
                 document.querySelectorAll('.dropdown-panel').forEach(p=>p.classList.remove('show'));
             });
+
+            function renderManageTags() {
+                const board = getBoard();
+                const tags = board.tags || [];
+                let html = `<div class="tag-manager-item"><button id="add-tag-btn" class="z-order-btn" style="width:auto; padding:8px 20px;">+ New Tag</button></div>`;
+                tags.forEach(tag => {
+                    html += `<div class="tag-manager-item">
+                        <input type="text" class="tag-manager-input" value="${escapeHtml(tag.name)}" data-tag-id="${tag.id}">
+                        <input type="color" class="tag-manager-color" value="${tag.color||'#6366f1'}" data-tag-id="${tag.id}">
+                        <button class="tag-manager-delete" data-delete-tag="${tag.id}">${svgIcon('x',14)}</button>
+                    </div>`;
+                });
+                manageTagsContent.innerHTML = html;
+                document.getElementById('add-tag-btn')?.addEventListener('click', ()=>{
+                    const newTag = { id: generateTagId(), name: 'New Tag', color: '#6366f1' };
+                    board.tags = board.tags || [];
+                    board.tags.push(newTag);
+                    renderManageTags();
+                    scheduleSave();
+                });
+                manageTagsContent.querySelectorAll('.tag-manager-input').forEach(inp => {
+                    inp.addEventListener('input', ()=>{
+                        const tag = getTagById(inp.dataset.tagId);
+                        if (tag) {
+                            tag.name = inp.value.trim() || 'Tag';
+                            board.notes.forEach(n => {
+                                if ((n.tags||[]).includes(tag.id)) updateNoteElement(n);
+                            });
+                            scheduleSave();
+                        }
+                    });
+                });
+                manageTagsContent.querySelectorAll('.tag-manager-color').forEach(inp => {
+                    inp.addEventListener('input', ()=>{
+                        const tag = getTagById(inp.dataset.tagId);
+                        if (tag) {
+                            tag.color = inp.value;
+                            board.notes.forEach(n => {
+                                if ((n.tags||[]).includes(tag.id)) updateNoteElement(n);
+                            });
+                            scheduleSave();
+                        }
+                    });
+                });
+                manageTagsContent.querySelectorAll('.tag-manager-delete').forEach(btn => {
+                    btn.addEventListener('click', ()=>{
+                        const tagId = btn.dataset.deleteTag;
+                        if (confirm('Delete this tag and remove it from all notes?')) {
+                            board.tags = board.tags.filter(t => t.id !== tagId);
+                            board.notes.forEach(n => {
+                                n.tags = n.tags.filter(id => id !== tagId);
+                                updateNoteElement(n);
+                            });
+                            renderManageTags();
+                            scheduleSave();
+                        }
+                    });
+                });
+            }
 
             document.getElementById('help-tab').addEventListener('click',()=>helpModal.classList.add('active'));
             document.getElementById('about-tab').addEventListener('click',()=>aboutModal.classList.add('active'));
             document.getElementById('search-tab').addEventListener('click',()=>searchModal.classList.add('active'));
-            document.querySelectorAll('.close-modal').forEach(btn=>btn.addEventListener('click',()=>{helpModal.classList.remove('active');aboutModal.classList.remove('active');searchModal.classList.remove('active');statsModal.classList.remove('active');markedNotesModal.classList.remove('active');}));
-            window.addEventListener('click',(e)=>{if(e.target===helpModal) helpModal.classList.remove('active');if(e.target===aboutModal) aboutModal.classList.remove('active');if(e.target===searchModal) searchModal.classList.remove('active');if(e.target===statsModal) statsModal.classList.remove('active');if(e.target===markedNotesModal) markedNotesModal.classList.remove('active');});
+            document.querySelectorAll('.close-modal').forEach(btn=>btn.addEventListener('click',()=>{helpModal.classList.remove('active');aboutModal.classList.remove('active');searchModal.classList.remove('active');statsModal.classList.remove('active');markedNotesModal.classList.remove('active');manageTagsModal.classList.remove('active');changeHistoryModal.classList.remove('active');}));
+            window.addEventListener('click',(e)=>{if(e.target===helpModal) helpModal.classList.remove('active');if(e.target===aboutModal) aboutModal.classList.remove('active');if(e.target===searchModal) searchModal.classList.remove('active');if(e.target===statsModal) statsModal.classList.remove('active');if(e.target===markedNotesModal) markedNotesModal.classList.remove('active');if(e.target===manageTagsModal) manageTagsModal.classList.remove('active');if(e.target===changeHistoryModal) changeHistoryModal.classList.remove('active');});
 
             searchInput.addEventListener('input',()=>{
                 const q=searchInput.value.trim().toLowerCase();
@@ -1116,6 +1623,12 @@ or commercial use is prohibited.
                 if(!q) return;
                 const board=getBoard();
                 const filtered=board.notes.filter(n=>{
+                    if (q.startsWith('tag:')) {
+                        const tagName = q.slice(4).trim();
+                        const tag = (board.tags||[]).find(t => t.name.toLowerCase() === tagName);
+                        if (tag) { return (n.tags||[]).includes(tag.id); }
+                        return false;
+                    }
                     if(n.title.toLowerCase().includes(q)) return true;
                     if(n.tag.toLowerCase().includes(q)) return true;
                     const ta=document.querySelector(`[data-note-id="${n.id}"] textarea`);
@@ -1137,7 +1650,7 @@ or commercial use is prohibited.
                 if(filtered.length===0) searchResults.innerHTML='<p style="opacity:0.5;text-align:center;padding:20px;">No notes found.</p>';
             });
 
-            document.querySelector('#dropdown-file .dropdown-item[data-action="new-board"]').addEventListener('click',()=>{if(boards.length>=5){showToast('Max 5 boards');return;}boards.push({id:Date.now().toString(),name:'Board '+(boards.length+1),notes:[],noteIdCounter:0,connections:[],viewX:0,viewY:0,zoom:1});globalZCounter=10;switchToBoard(boards.length-1);renderBoardTabs();closeDropdowns();saveImmediate();});
+            document.querySelector('#dropdown-file .dropdown-item[data-action="new-board"]').addEventListener('click',()=>{if(boards.length>=5){showToast('Max 5 boards');return;}boards.push({id:Date.now().toString(),name:'Board '+(boards.length+1),notes:[],noteIdCounter:0,connections:[],tags:[],viewX:0,viewY:0,zoom:1});globalZCounter=10;switchToBoard(boards.length-1);renderBoardTabs();closeDropdowns();saveImmediate();});
             document.querySelector('#dropdown-file .dropdown-item[data-action="export"]').addEventListener('click',()=>{const data=JSON.stringify(getBoard(),null,2);const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:'application/json'}));a.download=(getBoard().name||'board')+'.json';a.click();closeDropdowns();});
             document.querySelector('#dropdown-file .dropdown-item[data-action="import"]').addEventListener('click',()=>{importFileInput.click();closeDropdowns();});
             importFileInput.addEventListener('change',(e)=>{const file=e.target.files[0];if(!file) return;const reader=new FileReader();reader.onload=(ev)=>{try{const data=JSON.parse(ev.target.result);if(!data.notes||!Array.isArray(data.notes)) throw new Error();if(boards.length>=5){showToast('Max 5 boards');return;}data.id=Date.now().toString();data.name=data.name||'Imported';validateBoard(data);boards.push(data);globalZCounter=Math.max(globalZCounter, Math.max(...data.notes.map(n=>n.zIndex||10),10));switchToBoard(boards.length-1);renderBoardTabs();showToast('Board imported');saveImmediate();}catch(ex){showToast('Invalid file');}};reader.readAsText(file);importFileInput.value='';});
@@ -1153,18 +1666,17 @@ or commercial use is prohibited.
                 const board=getBoard();
                 viewX=board.viewX||0;viewY=board.viewY||0;zoom=board.zoom||1;
                 renderAllNotes();updateTransform(false);renderBoardTabs();updateReturnBtn();closeAllPopups();
-                // repair connections after switch
                 validateBoard(board);
                 updateAllConnections();
                 scheduleSave();
+                undoMgr.clear();
             };
             const renderAllNotes=()=>{document.querySelectorAll('.sticky-note').forEach(n=>n.remove());while(connectionsSvg.firstChild) connectionsSvg.removeChild(connectionsSvg.firstChild);getBoard().notes.forEach(note=>renderNoteElement(note));updateAllConnections();};
             const renderBoardTabs=()=>{boardTabsEl.innerHTML='';boards.forEach((b,i)=>{const tab=document.createElement('span');tab.className='board-tab'+(i===activeBoardIdx?' active':'');tab.innerHTML=`<span class="tab-name" contenteditable="false">${escapeHtml(b.name)}</span><button class="close-btn">${svgIcon('x',12)}</button>`;const ns=tab.querySelector('.tab-name'),cb=tab.querySelector('.close-btn');tab.addEventListener('click',(e)=>{if(e.target===cb||e.target.closest('.close-btn')) return;switchToBoard(i);});ns.addEventListener('dblclick',(e)=>{e.stopPropagation();ns.contentEditable='true';ns.focus();});ns.addEventListener('blur',()=>{ns.contentEditable='false';b.name=ns.textContent.trim()||b.name;saveImmediate();renderBoardTabs();});ns.addEventListener('keydown',(e)=>{if(e.key==='Enter'){e.preventDefault();ns.blur();}});cb.addEventListener('click',(e)=>{e.stopPropagation();if(boards.length<=1){showToast('Cannot delete last board');return;}boards.splice(i,1);if(activeBoardIdx>=boards.length) activeBoardIdx=boards.length-1;currentBoard=getBoard();viewX=currentBoard.viewX;viewY=currentBoard.viewY;zoom=currentBoard.zoom;renderAllNotes();updateTransform(false);renderBoardTabs();updateReturnBtn();saveImmediate();});boardTabsEl.appendChild(tab);});};
 
-            // ─── Interaction Handlers (with drag safety) ───
             const onNoteMouseDown=(e,noteId)=>{
                 if(e.button!==0) return;
-                if(e.target.closest('textarea')||e.target.closest('.star-btn')||e.target.closest('.like-btn')||e.target.closest('.dislike-btn')) return;
+                if(e.target.closest('textarea')||e.target.closest('.star-btn')||e.target.closest('.like-btn')||e.target.closest('.dislike-btn')||e.target.closest('.note-tag-dot')) return;
                 if(connectingFromId){
                     if(connectingFromId!==noteId){addConnection(connectingFromId,noteId);clearHighlights();connectingFromId=null;showToast('Connected!');play('pop');}
                     else{clearHighlights();connectingFromId=null;showToast('Cancelled');}
@@ -1177,7 +1689,7 @@ or commercial use is prohibited.
                 dragStartX=e.clientX;dragStartY=e.clientY;
             };
             const onNoteTouchStart=(e,noteId)=>{
-                if(e.target.closest('textarea')||e.target.closest('.star-btn')||e.target.closest('.like-btn')||e.target.closest('.dislike-btn')) return;
+                if(e.target.closest('textarea')||e.target.closest('.star-btn')||e.target.closest('.like-btn')||e.target.closest('.dislike-btn')||e.target.closest('.note-tag-dot')) return;
                 if(connectingFromId){if(connectingFromId!==noteId){e.preventDefault();addConnection(connectingFromId,noteId);clearHighlights();connectingFromId=null;}else{e.preventDefault();clearHighlights();connectingFromId=null;}return;}
                 const t=e.touches[0];potentialClickNoteId=noteId;clickStartX=t.clientX;clickStartY=t.clientY;
                 const note=getBoard().notes.find(n=>n.id===noteId);
@@ -1186,21 +1698,21 @@ or commercial use is prohibited.
             };
             const clearHighlights=()=>document.querySelectorAll('.connecting-highlight').forEach(el=>el.classList.remove('connecting-highlight'));
 
+            window.addEventListener('blur', stopAllInteractions);
             function stopAllInteractions() {
                 if (isDraggingNote) {
+                    const note = getBoard().notes.find(n => n.id === dragNoteId);
+                    if (note && (dragNoteOrigX !== note.x || dragNoteOrigY !== note.y)) {
+                        undoMgr.push(makeMoveNoteCmd(dragNoteId, activeBoardIdx, dragNoteOrigX, dragNoteOrigY, note.x, note.y));
+                    }
                     document.querySelector(`[data-note-id="${dragNoteId}"]`)?.classList.remove('dragging');
                     isDraggingNote = false;
                     dragNoteId = null;
                     scheduleSave();
                 }
-                if (isPanning) {
-                    document.body.classList.remove('panning');
-                    isPanning = false;
-                }
+                if (isPanning) { document.body.classList.remove('panning'); isPanning = false; }
                 potentialClickNoteId = null;
             }
-
-            window.addEventListener('blur', stopAllInteractions);
 
             window.addEventListener('mousemove',(e)=>{
                 if (isDraggingNote && dragNoteId) {
@@ -1229,6 +1741,10 @@ or commercial use is prohibited.
             });
             window.addEventListener('mouseup',()=>{
                 if (isDraggingNote) {
+                    const note = getBoard().notes.find(n => n.id === dragNoteId);
+                    if (note && (dragNoteOrigX !== note.x || dragNoteOrigY !== note.y)) {
+                        undoMgr.push(makeMoveNoteCmd(dragNoteId, activeBoardIdx, dragNoteOrigX, dragNoteOrigY, note.x, note.y));
+                    }
                     document.querySelector(`[data-note-id="${dragNoteId}"]`)?.classList.remove('dragging');
                     isDraggingNote = false;
                     dragNoteId = null;
@@ -1238,10 +1754,7 @@ or commercial use is prohibited.
                     potentialClickNoteId = null;
                     showCustomizationPopup(nid);
                 }
-                if (isPanning) {
-                    document.body.classList.remove('panning');
-                    isPanning = false;
-                }
+                if (isPanning) { document.body.classList.remove('panning'); isPanning = false; }
             });
             window.addEventListener('touchmove',(e)=>{
                 if(e.touches.length===2&&pinchStartDist>0){
@@ -1283,6 +1796,10 @@ or commercial use is prohibited.
             },{passive:false});
             window.addEventListener('touchend',()=>{
                 if(isDraggingNote){
+                    const note = getBoard().notes.find(n => n.id === dragNoteId);
+                    if (note && (dragNoteOrigX !== note.x || dragNoteOrigY !== note.y)) {
+                        undoMgr.push(makeMoveNoteCmd(dragNoteId, activeBoardIdx, dragNoteOrigX, dragNoteOrigY, note.x, note.y));
+                    }
                     document.querySelector(`[data-note-id="${dragNoteId}"]`)?.classList.remove('dragging');
                     isDraggingNote=false;dragNoteId=null;
                     scheduleSave();
@@ -1294,7 +1811,7 @@ or commercial use is prohibited.
                 pinchStartDist=0;
             });
             boardContainer.addEventListener('mousedown',(e)=>{
-                if(e.target.closest('.sticky-note')||e.target.closest('.context-menu')||e.target.closest('.customization-popup')||e.target.closest('.conn-customization-popup')||e.target.closest('.modal-overlay')) return;
+                if(e.target.closest('.sticky-note')||e.target.closest('.context-menu')||e.target.closest('.customization-popup')||e.target.closest('.conn-customization-popup')||e.target.closest('.tag-assign-popup')||e.target.closest('.modal-overlay')) return;
                 if(e.button===0){
                     isPanning=true;panStartMouseX=e.clientX;panStartMouseY=e.clientY;
                     panStartViewX=viewX;panStartViewY=viewY;
@@ -1303,7 +1820,7 @@ or commercial use is prohibited.
                 }
             });
             boardContainer.addEventListener('touchstart',(e)=>{
-                if(e.target.closest('.sticky-note')||e.target.closest('.context-menu')||e.target.closest('.customization-popup')||e.target.closest('.conn-customization-popup')||e.target.closest('.modal-overlay')) return;
+                if(e.target.closest('.sticky-note')||e.target.closest('.context-menu')||e.target.closest('.customization-popup')||e.target.closest('.conn-customization-popup')||e.target.closest('.tag-assign-popup')||e.target.closest('.modal-overlay')) return;
                 if(e.touches.length===1){
                     const t=e.touches[0];
                     isPanning=true;panStartMouseX=t.clientX;panStartMouseY=t.clientY;
@@ -1330,18 +1847,35 @@ or commercial use is prohibited.
                 zoom=newZoom;
                 scheduleBoardUpdate();
             },{passive:false});
-            window.addEventListener('keydown',(e)=>{if(e.key==='Escape'){clearHighlights();connectingFromId=null;closeAllPopups();}});
 
-            // ─── Initialization ──────────────────────────
+            window.addEventListener('keydown',(e)=>{
+                if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+                    e.preventDefault();
+                    if (e.shiftKey) {
+                        undoMgr.redo();
+                    } else {
+                        undoMgr.undo();
+                    }
+                }
+                if (e.key === 'Escape') {
+                    clearHighlights();
+                    connectingFromId = null;
+                    closeAllPopups();
+                }
+            });
+
+            function updateUndoRedoButtons() {
+                undoBtn.disabled = undoMgr.pointer < 0;
+                redoBtn.disabled = undoMgr.pointer >= undoMgr.stack.length - 1;
+            }
+            undoBtn.addEventListener('click', ()=> undoMgr.undo());
+            redoBtn.addEventListener('click', ()=> undoMgr.redo());
+            updateUndoRedoButtons();
+
             const load=()=>{
-                try{
-                    const raw=localStorage.getItem('boardsData');
-                    if(raw) boards=JSON.parse(raw);
-                }catch(e){}
-                if(!boards||boards.length===0) boards=[{id:Date.now().toString(),name:'Board 1',notes:[],noteIdCounter:0,connections:[],viewX:0,viewY:0,zoom:1}];
-                boards.forEach(b=>{
-                    validateBoard(b);
-                });
+                try{ const raw=localStorage.getItem('boardsData'); if(raw) boards=JSON.parse(raw); }catch(e){}
+                if(!boards||boards.length===0) boards=[{id:Date.now().toString(),name:'Board 1',notes:[],noteIdCounter:0,connections:[],tags:[],viewX:0,viewY:0,zoom:1}];
+                boards.forEach(b=>{ validateBoard(b); });
                 const maxZ = Math.max(...boards.flatMap(b => b.notes.map(n => n.zIndex||10)), 10);
                 globalZCounter = maxZ;
             };
@@ -1365,7 +1899,7 @@ or commercial use is prohibited.
             renderBoardTabs();
             updateReturnBtn();
             window.addEventListener('resize',()=>{updateAllConnections();updateTransform(false);});
-            console.log('✅ Robust production version: debounced save, validation, connection repair, drag safety.');
+            console.log('✅ All features active – tag tooltips, change history, and redesigned tag manager.');
         })();
     </script>
 </body>
