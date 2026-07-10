@@ -189,23 +189,31 @@ or commercial use is prohibited.
             transition: opacity 0.15s;
         }
         .tag-popdown.visible { opacity: 1; }
-        .context-menu, .customization-popup, .conn-customization-popup, .tag-assign-popup {
+        /* Context Menu horizontal layout */
+        .context-menu {
             position:fixed; z-index:10002;
             background:var(--popup-bg); backdrop-filter:blur(32px); -webkit-backdrop-filter:blur(32px);
             border:1px solid var(--popup-border); border-radius:20px;
             box-shadow:0 25px 60px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.05);
             opacity:0; transform:scale(0.85) translateY(-10px); pointer-events:none;
             transition:opacity 0.25s, transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
-            color:var(--text); padding:0; overflow:visible;
+            color:var(--text); padding:12px; overflow:visible;
+            display:flex; flex-direction:row; gap:0; align-items:stretch;
         }
-        .context-menu.active, .customization-popup.active, .conn-customization-popup.active, .tag-assign-popup.active {
+        .context-menu.active {
             opacity:1; transform:scale(1) translateY(0); pointer-events:auto;
         }
-        .context-menu { padding:8px 0; min-width:240px; max-height:90vh; overflow-y:auto; }
+        .context-menu-column {
+            display:flex; flex-direction:column;
+            min-width:180px;
+        }
+        .context-menu-divider-vertical {
+            width:1px; background:rgba(255,255,255,0.15); margin:0 4px;
+        }
         .context-menu-item {
             padding:12px 20px; cursor:pointer; display:flex; align-items:center; gap:14px;
             font-size:0.9rem; transition:background 0.15s, padding 0.2s; color:var(--text);
-            position:relative;
+            position:relative; white-space:nowrap;
         }
         .context-menu-item:hover { background:rgba(255,255,255,0.1); padding-left:24px; }
         .context-menu-item svg { stroke:currentColor; fill:none; stroke-width:2; }
@@ -259,6 +267,18 @@ or commercial use is prohibited.
         }
         .context-menu-item.has-arrow.expanded::after {
             transform: rotate(90deg);
+        }
+        .customization-popup, .conn-customization-popup, .tag-assign-popup {
+            position:fixed; z-index:10002;
+            background:var(--popup-bg); backdrop-filter:blur(32px); -webkit-backdrop-filter:blur(32px);
+            border:1px solid var(--popup-border); border-radius:20px;
+            box-shadow:0 25px 60px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.05);
+            opacity:0; transform:scale(0.85) translateY(-10px); pointer-events:none;
+            transition:opacity 0.25s, transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+            color:var(--text); padding:0; overflow:visible;
+        }
+        .customization-popup.active, .conn-customization-popup.active, .tag-assign-popup.active {
+            opacity:1; transform:scale(1) translateY(0); pointer-events:auto;
         }
         .customization-popup { width:560px; padding:24px; }
         .conn-customization-popup { width:360px; padding:20px; }
@@ -379,6 +399,8 @@ or commercial use is prohibited.
             .popup-columns { flex-direction:column; }
             .popup-divider { display:none; }
             .conn-customization-popup { width:90vw; }
+            .context-menu { flex-direction:column; }
+            .context-menu-divider-vertical { display:none; }
         }
     </style>
 </head>
@@ -450,21 +472,28 @@ or commercial use is prohibited.
         </div>
     </div>
 
+    <!-- Horizontal context menu with 3 columns -->
     <div class="context-menu" id="context-menu">
-        <div class="context-menu-item" data-action="add-note"><svg width="20" height="20"><use href="#icon-plus"/></svg> Add Note</div>
-        <div class="context-menu-item" data-action="connect"><svg width="20" height="20"><use href="#icon-link"/></svg> Connect to Another</div>
-        <div class="context-menu-item has-arrow" id="disconnect-main-item">
-            <svg width="20" height="20"><use href="#icon-unlink"/></svg> Disconnect...
+        <div class="context-menu-column" id="col-1">
+            <div class="context-menu-item" data-action="add-note"><svg width="20" height="20"><use href="#icon-plus"/></svg> Add Note</div>
+            <div class="context-menu-item" data-action="connect"><svg width="20" height="20"><use href="#icon-link"/></svg> Connect to Another</div>
+            <div class="context-menu-item has-arrow" id="disconnect-main-item">
+                <svg width="20" height="20"><use href="#icon-unlink"/></svg> Disconnect...
+            </div>
+            <div class="disconnect-submenu-wrapper" id="disconnect-submenu-wrapper"></div>
+            <div class="context-menu-item danger" data-action="disconnect-all"><svg width="20" height="20"><use href="#icon-x"/></svg> Remove All Connections</div>
         </div>
-        <div class="disconnect-submenu-wrapper" id="disconnect-submenu-wrapper"></div>
-        <div class="context-menu-item danger" data-action="disconnect-all"><svg width="20" height="20"><use href="#icon-x"/></svg> Remove All Connections</div>
-        <div class="dropdown-divider"></div>
-        <div class="context-menu-item" data-action="copy-note"><svg width="20" height="20"><use href="#icon-copy"/></svg> Copy Note</div>
-        <div class="context-menu-item" data-action="paste-note"><svg width="20" height="20"><use href="#icon-paste"/></svg> Paste Note</div>
-        <div class="dropdown-divider"></div>
-        <div class="context-menu-item" data-action="tag-note"><svg width="20" height="20"><use href="#icon-tag"/></svg> Set Tags...</div>
-        <div class="context-menu-item" data-action="change-history"><svg width="20" height="20"><use href="#icon-clock"/></svg> Change History</div>
-        <div class="context-menu-item danger" data-action="delete-note"><svg width="20" height="20"><use href="#icon-trash"/></svg> Delete Note</div>
+        <div class="context-menu-divider-vertical"></div>
+        <div class="context-menu-column" id="col-2">
+            <div class="context-menu-item" data-action="copy-note"><svg width="20" height="20"><use href="#icon-copy"/></svg> Copy Note</div>
+            <div class="context-menu-item" data-action="paste-note"><svg width="20" height="20"><use href="#icon-paste"/></svg> Paste Note</div>
+        </div>
+        <div class="context-menu-divider-vertical"></div>
+        <div class="context-menu-column" id="col-3">
+            <div class="context-menu-item" data-action="tag-note"><svg width="20" height="20"><use href="#icon-tag"/></svg> Set Tags...</div>
+            <div class="context-menu-item" data-action="change-history"><svg width="20" height="20"><use href="#icon-clock"/></svg> Change History</div>
+            <div class="context-menu-item danger" data-action="delete-note"><svg width="20" height="20"><use href="#icon-trash"/></svg> Delete Note</div>
+        </div>
     </div>
 
     <div class="customization-popup" id="customization-popup">
@@ -568,7 +597,7 @@ or commercial use is prohibited.
     <div class="modal-overlay" id="about-modal">
         <button class="close-modal"><svg width="20" height="20" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-x"/></svg></button>
         <h2>ℹ️ About</h2>
-        <p><strong>Infinite Sticky Note Board</strong></p>
+        <p><strong>Boards | Online Brainstorming Program</strong></p>
         <p>Version 1.0.0</p>
         <p>Developed by <strong>Abolfazl Fazeli</strong></p>
         <p>📧 <a href="mailto:abolfazlfazelimahsayeh@gmail.com" style="color:var(--accent)">abolfazlfazelimahsayeh@gmail.com</a></p>
@@ -1156,7 +1185,6 @@ or commercial use is prohibited.
                 el.addEventListener('mousedown',(e)=>onNoteMouseDown(e,note.id));
                 el.addEventListener('touchstart',(e)=>onNoteTouchStart(e,note.id),{passive:false});
                 el.addEventListener('contextmenu',(e)=>{e.preventDefault();onNoteContextMenu(e,note.id);});
-                // Tag dot hover events
                 el.querySelectorAll('.note-tag-dot').forEach(dot => {
                     dot.addEventListener('mouseenter', () => {
                         hoveredTagId = dot.dataset.tagId;
@@ -1196,7 +1224,6 @@ or commercial use is prohibited.
                         if (!tag) return '';
                         return `<span class="note-tag-dot" style="background:${tag.color||'#ccc'};" data-tag-id="${tag.id}" title="${escapeHtml(tag.name)}"></span>`;
                     }).join('');
-                    // Reattach hover events to dots
                     el.querySelectorAll('.note-tag-dot').forEach(dot => {
                         dot.addEventListener('mouseenter', () => {
                             hoveredTagId = dot.dataset.tagId;
@@ -1210,7 +1237,6 @@ or commercial use is prohibited.
                 }
                 const badge=el.querySelector('.tag-badge');
                 if(badge){badge.textContent=note.tag;badge.classList.toggle('visible',showTags);}
-                // Ensure popdown exists
                 if (!el.querySelector('.tag-popdown')) {
                     const pd = document.createElement('div');
                     pd.className = 'tag-popdown';
@@ -1306,10 +1332,10 @@ or commercial use is prohibited.
             returnBtn.addEventListener('click',animateToNearestStarred);
 
             const closeAllPopups=()=>{hideContextMenu();hideCustomizationPopup();hideConnCustomizationPopup();hideTagAssignPopup();};
+
             const showContextMenu=(sx,sy,noteId=null)=>{
                 contextMenuTargetId=noteId;
-                contextMenu.style.left=Math.min(sx,innerWidth-250)+'px';
-                contextMenu.style.top=Math.min(sy,innerHeight-650)+'px';
+                // Clear and rebuild disconnect submenu
                 disconnectSubmenuWrapper.classList.remove('expanded');
                 disconnectMainItem.classList.remove('expanded');
                 disconnectSubmenuWrapper.innerHTML = '';
@@ -1337,6 +1363,12 @@ or commercial use is prohibited.
                         disconnectSubmenuWrapper.appendChild(emptyItem);
                     }
                 }
+                // Position menu ensuring it stays within viewport
+                const menuWidth = 620;  // approximate width of horizontal menu
+                const left = Math.max(10, Math.min(sx, innerWidth - menuWidth));
+                contextMenu.style.left = left + 'px';
+                // Height: we'll set a fixed max-height, but position so that if it's near bottom it doesn't overflow
+                contextMenu.style.top = Math.max(10, Math.min(sy, innerHeight - 300)) + 'px';
                 contextMenu.classList.add('active');play('click');
             };
             const hideContextMenu=()=>{contextMenu.classList.remove('active');disconnectSubmenuWrapper.classList.remove('expanded');disconnectMainItem.classList.remove('expanded');};
@@ -1900,9 +1932,8 @@ or commercial use is prohibited.
             renderBoardTabs();
             updateReturnBtn();
             window.addEventListener('resize',()=>{updateAllConnections();updateTransform(false);});
-            console.log('✅ All features active – tag tooltips, change history, and redesigned tag manager.');
+            console.log('✅ Context menu redesigned: horizontal layout, proper positioning.');
         })();
     </script>
 </body>
 </html>
-
