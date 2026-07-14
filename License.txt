@@ -1,19 +1,19 @@
 SOFTWARE LICENSE & TERMS OF USE AGREEMENT
 
-Project Name: Boards | Online Brainstorming Program
-File Reference: Boards.html
+Project Name: Sepheris | Online Brainstorming Program
+File Reference: index.html
 Licensor: Abolfazl Fazeli
 
 1. NATURE OF THE SOFTWARE
-This Software, “Boards.html”, is a proprietary, single-file web application designed for brainstorming and data visualization. It incorporates unique UI/UX logic, custom SVG connection algorithms, and a specific local data management architecture. The Licensee acknowledges that the Software is a “Computer Work” protected under the “Law for the Protection of Rights of Computer Software Creators” (Iran, 2000).
+This Software, “index.html”, is a proprietary, single-file web application designed for brainstorming and data visualization. It incorporates unique UI/UX logic, custom SVG connection algorithms, and a specific local data management architecture. The Licensee acknowledges that the Software is a “Computer Work” protected under the “Law for the Protection of Rights of Computer Software Creators” (Iran, 2000).
 
 2. GRANT OF USE (NOT OWNERSHIP)
-The Licensor grants you a non-exclusive, non-transferable right to use the Software. This license does not grant you ownership of the source code, the logic of the “Online Brainstorming Program,” or any styling/assets contained within Boards.html. All rights not expressly granted to you are reserved by the Licensor.
+The Licensor grants you a non-exclusive, non-transferable right to use the Software. This license does not grant you ownership of the source code, the logic of the “Sepheris | Online Brainstorming Program,” or any styling/assets contained within index.html. All rights not expressly granted to you are reserved by the Licensor.
 
 3. INTELLECTUAL PROPERTY & COPYRIGHT
 Source Code Protection: The HTML, CSS (including the specific glassmorphism theme and custom variables), and JavaScript logic (specifically the connection pathing, z-order management, and board synchronization) are the exclusive intellectual property of the Licensor.
 Moral Rights: In accordance with Article 4 of the Iranian Software Protection Law, the Licensor’s moral rights (including the right to be named as the creator) are permanent and non-transferable.
-Proprietary Notices: You must not remove or obscure the proprietary comments (e.g., <!-- Boards | Online Brainstorming Prgram - Proprietary/Confidential -->) located at the top of the file or within the UI.
+Proprietary Notices: You must not remove or obscure the proprietary comments (e.g., <!-- Sepheris | Online Brainstorming Prgram - Proprietary/Confidential -->) located at the top of the file or within the UI.
 4. STRICT RESTRICTIONS
 The Licensee is expressly prohibited from:
 
